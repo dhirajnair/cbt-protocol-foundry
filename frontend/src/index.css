@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-500 to-secondary bg-clip-text text-transparent;
+  }
+
+  .node-idle {
+    @apply bg-slate-100 border-slate-300 text-slate-500;
+  }
+
+  .node-active {
+    @apply bg-primary-50 border-primary-400 text-primary-700 shadow-lg shadow-primary-500/20;
+  }
+
+  .node-complete {
+    @apply bg-secondary/10 border-secondary text-secondary;
+  }
+
+  .node-error {
+    @apply bg-destructive/10 border-destructive text-destructive;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+}
+
+/* React Flow customization */
+.react-flow__node {
+  @apply transition-all duration-300;
+}
+
+.react-flow__edge-path {
+  @apply stroke-slate-300;
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  @apply stroke-primary-400;
+}
+
+/* Code/log styling */
+.log-entry {
+  @apply font-mono text-sm py-1.5 px-3 rounded-lg;
+}
+
+.log-entry-info {
+  @apply bg-slate-50 text-slate-700;
+}
+
+.log-entry-success {
+  @apply bg-secondary/5 text-secondary;
+}
+
+.log-entry-warning {
+  @apply bg-accent/10 text-amber-700;
+}
+
+.log-entry-error {
+  @apply bg-destructive/5 text-destructive;
+}
+

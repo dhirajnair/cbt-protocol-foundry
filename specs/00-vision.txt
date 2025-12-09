@@ -1,0 +1,55 @@
+The Requirements
+--------------------------------
+A. The Backend (The "Brain")
+Framework: Python & LangGraph.
+Database: You must use a persistent backend (SQLite or Postgres) with LangGraph
+Checkpointers.
+1. The Agent Architecture (Your Choice):
+We need a system that mimics a rigorous clinical review board. A simple linear chain
+(A → B → C) is insufficient. We want to see autonomy and complex reasoning.
+• The Goal: Produce a safe, empathetic, and structured CBT exercise based on
+a user intent (e.g., "Create an exposure hierarchy for agoraphobia").
+• The Team: You decide the roster. However, a robust solution likely needs
+
+agents acting as Draftsmen, Safety Guardians (checking for self-
+harm/medical advice), Clinical Critics (judging tone/empathy), and perhaps a
+
+Supervisor/Manager to route tasks and decide when a draft is "good enough."
+
+• The Pattern: Choose an architecture that best solves this (e.g., Supervisor-
+Worker, Hierarchical Teams, or Network/Swarm).
+
+• Autonomy: The system should be able to loop, self-correct, and debate
+internally before disturbing the human.
+2. Deep State Management ("The Blackboard"):
+The agents must share a rich, structured state. It shouldn't just be a list of messages.
+Think of it as a shared project workspace.
+
+• Context: Detailed scratchpads where agents can leave notes for each other
+(e.g., "Safety Agent flagged line 3; Drafter needs to revise").
+• Versions: Ability to track previous drafts vs. current drafts.
+• Metadata: Iteration counts, safety scores, empathy metrics.
+3. Persistence & Memory:
+• Checkpointing: Every step of the graph must be check-pointed to the
+database. If the server crashes, it should resume exactly where it left off.
+• History: The system must retain a log of all past queries and generated
+protocols in the database.
+--------------------------------
+B. The Interfaces (The "Body")
+1. Interface A: The React Dashboard (Human-in-the-Loop)
+• Visualization: Build a UI that makes the "Black Box" transparent. We want to
+see the agents working in real-time (streaming thoughts/actions).
+• The "Halt" Mechanism: The graph must interrupt execution before finalizing.
+o The UI must fetch the current state from the checkpoint.
+o It must present the generated draft to the Human User.
+o The Human can Edit the text or Approve it.
+o Only upon approval does the graph resume and save the final artifact.
+
+2. Interface B: The MCP Server (Machine-to-Machine)
+• Implement the Model Context Protocol (MCP) using the mcp-python SDK.
+• Expose your complex LangGraph workflow as a single Tool (resource) to the
+MCP ecosystem.
+• Use Case: A user on an MCP Client (like Claude Desktop) should be able to
+prompt: "Ask Cerina Foundry to create a sleep hygiene protocol." This triggers
+your backend, runs the agents, and returns the result—bypassing the React UI
+but using the same underlying logic.
