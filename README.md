@@ -1,4 +1,4 @@
-# Cerina - CBT Protocol Foundry
+# CBT Foundry - CBT Protocol Foundry
 
 A multi-agent AI system for generating safe, empathetic Cognitive Behavioral Therapy (CBT) protocols.
 
@@ -93,10 +93,10 @@ conda activate cbt
 ```bash
 # Start PostgreSQL container
 docker run -d \
-  --name cerina-postgres \
-  -e POSTGRES_USER=cerina \
-  -e POSTGRES_PASSWORD=cerina \
-  -e POSTGRES_DB=cerina \
+  --name cbt-postgres \
+  -e POSTGRES_USER=cbt \
+  -e POSTGRES_PASSWORD=cbt \
+  -e POSTGRES_DB=cbt \
   -p 5432:5432 \
   postgres:16-alpine
 
@@ -137,7 +137,7 @@ PYTHONPATH=. uvicorn app.main:app --reload --port 8000
 
 You should see:
 ```
-🚀 Starting Cerina Backend...
+🚀 Starting CBT Foundry Backend...
 ✅ Database tables created
 ✅ LangGraph checkpointer initialized
 ✅ All systems ready
@@ -206,7 +206,7 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 
 # Optional (defaults shown)
 OPENAI_MODEL=gpt-4o
-DATABASE_URL=postgresql://cerina:cerina@localhost:5432/cerina
+DATABASE_URL=postgresql://cbt:cbt@localhost:5432/cbt
 HOST=0.0.0.0
 PORT=8000
 MCP_PORT=8001
@@ -245,13 +245,13 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 ```json
 {
   "mcpServers": {
-    "cerina": {
+    "cbt": {
       "command": "python",
       "args": ["-m", "app.mcp_server"],
       "cwd": "/path/to/cbt-protocol-foundry/backend",
       "env": {
         "OPENAI_API_KEY": "sk-your-key-here",
-        "DATABASE_URL": "postgresql://cerina:cerina@localhost:5432/cerina"
+        "DATABASE_URL": "postgresql://cbt:cbt@localhost:5432/cbt"
       }
     }
   }
@@ -260,7 +260,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 
 ### Usage in Claude Desktop
 
-> "Ask Cerina to create a sleep hygiene protocol"
+> "Ask CBT Foundry to create a sleep hygiene protocol"
 
 ---
 
@@ -319,10 +319,10 @@ cbt-protocol-foundry/
 docker ps | grep postgres
 
 # Check PostgreSQL logs
-docker logs cerina-postgres
+docker logs cbt-postgres
 
 # Restart PostgreSQL
-docker restart cerina-postgres
+docker restart cbt-postgres
 ```
 
 ### Backend Won't Start
@@ -359,9 +359,9 @@ PYTHONPATH=. uvicorn app.main:app --reload --port 8000
 npm run dev
 
 # PostgreSQL
-docker start cerina-postgres  # Start
-docker stop cerina-postgres   # Stop
-docker logs cerina-postgres   # View logs
+docker start cbt-postgres  # Start
+docker stop cbt-postgres   # Stop
+docker logs cbt-postgres   # View logs
 
 # Docker Compose (all services)
 docker-compose up -d          # Start all

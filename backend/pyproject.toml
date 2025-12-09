@@ -1,5 +1,5 @@
 [project]
-name = "cerina-backend"
+name = "cbt-backend"
 version = "0.1.0"
 description = "CBT Protocol Foundry - Multi-agent LangGraph backend"
 readme = "README.md"

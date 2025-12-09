@@ -12,7 +12,7 @@ from app.api import router
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
-    print("🚀 Starting Cerina Backend...")
+    print("🚀 Starting CBT Backend...")
     init_db()
     await init_checkpointer()
     print("✅ All systems ready")
@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Cerina - CBT Protocol Foundry",
+    title="CBT - CBT Protocol Foundry",
     description="Multi-agent system for generating safe, empathetic CBT protocols",
     version="0.1.0",
     lifespan=lifespan,
@@ -49,7 +49,7 @@ app.include_router(router)
 async def root():
     """Root endpoint."""
     return {
-        "name": "Cerina - CBT Protocol Foundry",
+        "name": "CBT - CBT Protocol Foundry",
         "version": "0.1.0",
         "status": "running",
         "docs": "/docs",

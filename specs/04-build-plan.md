@@ -3,8 +3,8 @@
 ## Phase 1: Foundation (Days 1-2)
 
 ### 1.1 Project Setup
-- [ ] Init Python project: `uv init cerina-backend`
-- [ ] Init React project: `npm create vite@latest cerina-ui -- --template react-ts`
+- [ ] Init Python project: `uv init cbt-backend`
+- [ ] Init React project: `npm create vite@latest cbt-ui -- --template react-ts`
 - [ ] Create monorepo structure: `/backend`, `/frontend`, `/docs`
 - [ ] Add Docker Compose: `docker-compose.yml` with postgres, backend, frontend services
 - [ ] Configure `.env.example` with `OPENAI_API_KEY`, `DATABASE_URL`

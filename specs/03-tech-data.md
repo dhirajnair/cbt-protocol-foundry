@@ -165,7 +165,7 @@ Checkpoint contains BlackboardState snapshot
 tools = [
     {
         "name": "create_protocol",
-        "description": "Generate a CBT protocol using Cerina's agent system",
+        "description": "Generate a CBT protocol using CBT Foundry's agent system",
         "input_schema": {
             "type": "object",
             "properties": {

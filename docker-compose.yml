@@ -3,17 +3,17 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: cerina-postgres
+    container_name: cbt-postgres
     environment:
-      POSTGRES_USER: cerina
-      POSTGRES_PASSWORD: cerina
-      POSTGRES_DB: cerina
+      POSTGRES_USER: cbt
+      POSTGRES_PASSWORD: cbt
+      POSTGRES_DB: cbt
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cerina -d cerina"]
+      test: ["CMD-SHELL", "pg_isready -U cbt -d cbt"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,13 +22,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cerina-backend
+    container_name: cbt-backend
     ports:
       - "8000:8000"
       - "8001:8001"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=postgresql://cerina:cerina@postgres:5432/cerina
+      - DATABASE_URL=postgresql://cbt:cbt@postgres:5432/cbt
     volumes:
       - ./backend:/app
     depends_on:
@@ -44,7 +44,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: cerina-frontend
+    container_name: cbt-frontend
     ports:
       - "5173:5173"
     environment:

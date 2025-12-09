@@ -50,6 +50,6 @@ o Only upon approval does the graph resume and save the final artifact.
 • Expose your complex LangGraph workflow as a single Tool (resource) to the
 MCP ecosystem.
 • Use Case: A user on an MCP Client (like Claude Desktop) should be able to
-prompt: "Ask Cerina Foundry to create a sleep hygiene protocol." This triggers
+prompt: "Ask CBT Foundry to create a sleep hygiene protocol." This triggers
 your backend, runs the agents, and returns the result—bypassing the React UI
 but using the same underlying logic.

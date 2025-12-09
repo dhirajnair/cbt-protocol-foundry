@@ -28,7 +28,7 @@ export default function Layout() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-display font-bold text-lg text-slate-800">Cerina</h1>
+              <h1 className="font-display font-bold text-lg text-slate-800">CBT Foundry</h1>
               <p className="text-xs text-muted-foreground">CBT Protocol Foundry</p>
             </div>
           </Link>

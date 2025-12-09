@@ -1,4 +1,4 @@
-"""Configuration management for Cerina Backend."""
+"""Configuration management for CBT Backend."""
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o"
     
     # Database (PostgreSQL)
-    database_url: str = "postgresql://cerina:cerina@localhost:5432/cerina"
+    database_url: str = "postgresql://cbt:cbt@localhost:5432/cbt"
     
     # Server
     host: str = "0.0.0.0"

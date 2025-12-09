@@ -13,7 +13,7 @@ from app.graph import create_workflow
 
 
 # Create MCP server
-server = Server("cerina-foundry")
+server = Server("cbt-foundry")
 
 
 @server.list_tools()
@@ -22,7 +22,7 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="create_protocol",
-            description="Generate a CBT (Cognitive Behavioral Therapy) protocol using Cerina's multi-agent system. The protocol will go through safety and clinical review before returning.",
+            description="Generate a CBT (Cognitive Behavioral Therapy) protocol using CBT Foundry's multi-agent system. The protocol will go through safety and clinical review before returning.",
             inputSchema={
                 "type": "object",
                 "properties": {

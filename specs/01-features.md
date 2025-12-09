@@ -49,7 +49,7 @@
 
 ### F6: MCP Server Interface
 - **Description**: Model Context Protocol server exposing the LangGraph workflow as a callable tool.
-- **User Story**: As a Claude Desktop user, I want to invoke Cerina via MCP so that I can generate protocols without the web UI.
+- **User Story**: As a Claude Desktop user, I want to invoke CBT Foundry via MCP so that I can generate protocols without the web UI.
 - **Acceptance Criteria**:
   - [ ] Implements `mcp-python` SDK
   - [ ] Exposes `create_protocol` tool with input: intent (string)
@@ -79,8 +79,8 @@
 7. System saves final artifact, displays success
 
 ### Flow 2: Generate Protocol via MCP
-1. User in Claude Desktop prompts: "Ask Cerina to create a sleep hygiene protocol"
-2. MCP Client calls Cerina MCP Server `create_protocol` tool
+1. User in Claude Desktop prompts: "Ask CBT Foundry to create a sleep hygiene protocol"
+2. MCP Client calls CBT Foundry MCP Server `create_protocol` tool
 3. Agents run (no streaming UI)
 4. If auto-approve enabled: returns result
 5. If human-required: returns pending state with review URL
