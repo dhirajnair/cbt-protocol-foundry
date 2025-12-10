@@ -63,14 +63,19 @@ class SessionService:
             return list(db.exec(statement).all())
     
     @staticmethod
-    def update(session_id: str, data: SessionUpdate) -> Optional[SessionModel]:
+    def update(session_id: str, data: SessionUpdate | dict) -> Optional[SessionModel]:
         """Update a session."""
         with Session(engine) as db:
             session = db.get(SessionModel, session_id)
             if not session:
                 return None
             
-            update_data = data.model_dump(exclude_unset=True)
+            if hasattr(data, "model_dump"):
+                update_data = data.model_dump(exclude_unset=True)
+            elif isinstance(data, dict):
+                update_data = data
+            else:
+                raise TypeError("data must be SessionUpdate or dict")
             for key, value in update_data.items():
                 setattr(session, key, value)
             
@@ -81,7 +86,7 @@ class SessionService:
             return session
     
     @staticmethod
-    def update_by_thread_id(thread_id: str, data: SessionUpdate) -> Optional[SessionModel]:
+    def update_by_thread_id(thread_id: str, data: SessionUpdate | dict) -> Optional[SessionModel]:
         """Update a session by thread_id."""
         with Session(engine) as db:
             statement = select(SessionModel).where(SessionModel.thread_id == thread_id)
@@ -89,7 +94,12 @@ class SessionService:
             if not session:
                 return None
             
-            update_data = data.model_dump(exclude_unset=True)
+            if hasattr(data, "model_dump"):
+                update_data = data.model_dump(exclude_unset=True)
+            elif isinstance(data, dict):
+                update_data = data
+            else:
+                raise TypeError("data must be SessionUpdate or dict")
             for key, value in update_data.items():
                 setattr(session, key, value)
             
