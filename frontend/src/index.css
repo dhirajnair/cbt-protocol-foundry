@@ -23,6 +23,25 @@
     --ring: 199 89% 48%;
     --radius: 0.75rem;
   }
+  .dark {
+    --background: 222 47% 10%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 12%;
+    --card-foreground: 210 40% 98%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 16% 17%;
+    --muted-foreground: 215 16% 75%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 199 89% 48%;
+  }
 
   * {
     @apply border-border;
@@ -36,7 +55,7 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl dark:bg-slate-900/70 dark:border-white/10 dark:shadow-slate-900/40;
   }
 
   .gradient-text {
@@ -94,18 +113,56 @@
 }
 
 .log-entry-info {
-  @apply bg-slate-50 text-slate-700;
+  @apply bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-100;
 }
 
 .log-entry-success {
-  @apply bg-secondary/5 text-secondary;
+  @apply bg-secondary/5 text-secondary dark:bg-emerald-500/10 dark:text-emerald-200;
 }
 
 .log-entry-warning {
-  @apply bg-accent/10 text-amber-700;
+  @apply bg-accent/10 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200;
 }
 
 .log-entry-error {
-  @apply bg-destructive/5 text-destructive;
+  @apply bg-destructive/5 text-destructive dark:bg-red-500/10 dark:text-red-200;
+}
+
+@layer components {
+  .react-flow__controls {
+    @apply bg-white/90 border border-slate-200 rounded-lg shadow-sm;
+  }
+
+  .react-flow__controls button {
+    @apply text-slate-700 hover:bg-slate-100;
+  }
+
+  .react-flow__controls button svg {
+    color: currentColor;
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
+  /* Stronger dark-mode styling so +/- are visible */
+  .dark .react-flow__controls {
+    background-color: rgba(15, 23, 42, 0.9); /* slate-900/90 */
+    border-color: #1f2937; /* slate-800 */
+  }
+
+  .dark .react-flow__controls button {
+    color: #e2e8f0; /* slate-200 */
+    background-color: #1f2937; /* slate-800 */
+    border-color: #334155; /* slate-700 */
+  }
+
+  .dark .react-flow__controls button:hover {
+    background-color: #0f172a; /* slate-900 */
+  }
+
+  .dark .react-flow__controls button svg {
+    color: #e2e8f0;
+    fill: #e2e8f0;
+    stroke: #e2e8f0;
+  }
 }
 

@@ -133,7 +133,7 @@ export default function SessionDetail() {
             <ChevronLeft className="w-4 h-4 mr-1" />
             Back to History
           </Button>
-          <h1 className="text-2xl font-display font-bold text-slate-800">Session Details</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground">Session Details</h1>
           <p className="text-muted-foreground mt-1">{formatDate(session.created_at)}</p>
         </div>
         <div className="flex gap-2">
@@ -217,7 +217,7 @@ export default function SessionDetail() {
           <CardTitle className="text-lg">Original Request</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-700">{session.intent}</p>
+          <p className="text-foreground">{session.intent}</p>
         </CardContent>
       </Card>
 
@@ -240,8 +240,8 @@ export default function SessionDetail() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[400px]">
-              <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded-lg">
-                <pre className="whitespace-pre-wrap font-sans text-slate-700">
+              <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded-lg dark:bg-slate-900/70">
+                <pre className="whitespace-pre-wrap font-sans text-foreground">
                   {session.final_artifact}
                 </pre>
               </div>
@@ -319,12 +319,12 @@ export default function SessionDetail() {
                           const Icon = agentIcons[item.agent.toLowerCase()] || Activity
                           return (
                             <div key={idx} className="flex items-center gap-1">
-                              <div className="flex items-center gap-1 px-2 py-1 rounded bg-white/60 border border-slate-200/50">
+                              <div className="flex items-center gap-1 px-2 py-1 rounded bg-white/60 border border-slate-200/50 dark:bg-slate-900/70 dark:border-slate-800">
                                 <Icon className="w-3 h-3 text-primary" />
-                                <span className="text-xs font-medium capitalize">{item.agent}</span>
+                                <span className="text-xs font-medium capitalize text-foreground">{item.agent}</span>
                               </div>
                               {idx < agentSequence.length - 1 && (
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                               )}
                             </div>
                           )
@@ -351,17 +351,17 @@ export default function SessionDetail() {
                 {state.scratchpad.map((note, i) => (
                   <div
                     key={i}
-                    className="p-4 rounded-lg bg-white/60 border border-slate-200/50"
+                    className="p-4 rounded-lg bg-white/70 border border-slate-200/50 dark:bg-slate-900/70 dark:border-slate-800"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline" className="text-xs capitalize">
+                      <Badge variant="outline" className="text-xs capitalize dark:text-foreground">
                         {note.agent.replace('_', ' ')}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {new Date(note.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-700 mb-3 font-medium">{note.message}</p>
+                    <p className="text-sm text-foreground mb-3 font-medium">{note.message}</p>
                     
                     {(note.input || note.output) && (
                       <div className="space-y-2 mt-3 pt-3 border-t border-slate-200/50">
@@ -377,7 +377,7 @@ export default function SessionDetail() {
                                 }
                                 setExpandedInputs(newExpanded)
                               }}
-                              className="flex items-center gap-1 text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                              className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-300 mb-1 uppercase tracking-wide hover:text-slate-700 dark:hover:text-slate-100 transition-colors"
                             >
                               {expandedInputs.has(i) ? (
                                 <ChevronUp className="w-3 h-3" />
@@ -387,7 +387,7 @@ export default function SessionDetail() {
                               Input
                             </button>
                             {expandedInputs.has(i) && (
-                              <div className="text-xs text-slate-600 bg-slate-50/80 p-2 rounded border border-slate-200/50 font-mono whitespace-pre-wrap break-words">
+                              <div className="text-xs text-slate-700 dark:text-slate-100 bg-slate-50/80 dark:bg-slate-800/70 p-2 rounded border border-slate-200/50 dark:border-slate-700 font-mono whitespace-pre-wrap break-words">
                                 {note.input}
                               </div>
                             )}
@@ -406,7 +406,7 @@ export default function SessionDetail() {
                                 }
                                 setExpandedInputs(newExpanded)
                               }}
-                              className="flex items-center gap-1 text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide hover:text-slate-700 transition-colors"
+                              className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-300 mb-1 uppercase tracking-wide hover:text-slate-700 dark:hover:text-slate-100 transition-colors"
                             >
                               {expandedInputs.has(i + 10000) ? (
                                 <ChevronUp className="w-3 h-3" />
@@ -416,7 +416,7 @@ export default function SessionDetail() {
                               Output
                             </button>
                             {expandedInputs.has(i + 10000) && (
-                              <div className="text-xs text-slate-600 bg-blue-50/80 p-2 rounded border border-blue-200/50 font-mono whitespace-pre-wrap break-words">
+                              <div className="text-xs text-slate-700 dark:text-slate-100 bg-blue-50/80 dark:bg-slate-800/70 p-2 rounded border border-blue-200/50 dark:border-slate-700 font-mono whitespace-pre-wrap break-words">
                                 {note.output}
                               </div>
                             )}
