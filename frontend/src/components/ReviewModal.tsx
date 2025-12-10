@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -40,12 +40,16 @@ export default function ReviewModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { updateState } = useSessionStore()
+  const { updateState, addLog } = useSessionStore()
+  
+  // Store original draft for comparison
+  const originalDraftRef = useRef(draft || '')
 
   // Update editedDraft when draft prop changes (e.g., after API fetch)
   useEffect(() => {
     if (draft) {
       setEditedDraft(draft)
+      originalDraftRef.current = draft
       setIsLoading(false)
     }
   }, [draft])
@@ -102,13 +106,20 @@ export default function ReviewModal({
   const handleReject = async () => {
     setIsSubmitting(true)
     try {
+      // Add log entry for revision request before submitting
+      const hasEdits = editedDraft.trim() !== originalDraftRef.current.trim()
+      const feedbackText = feedback.trim() || (hasEdits ? 'Draft edited' : 'No feedback provided')
+      addLog('human_gate', `Revision requested. Feedback: ${feedbackText}`, 'warning')
+      
       await api.submitReview(threadId, 'reject', editedDraft, feedback)
-      updateState({ status: 'running' })
+      updateState({ status: 'running', isPaused: false })
       toast({
         title: 'Revision Requested',
         description: 'The protocol is being revised based on your feedback.',
       })
       onOpenChange(false)
+      // Reconnect websocket to continue receiving updates
+      onReviewComplete()
     } catch (error) {
       toast({
         title: 'Error',

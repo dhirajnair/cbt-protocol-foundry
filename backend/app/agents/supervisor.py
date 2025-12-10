@@ -1,5 +1,6 @@
 """Supervisor Agent - Routes tasks and decides next steps."""
 import json
+import logging
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -41,6 +42,14 @@ async def supervisor_node(state: BlackboardState) -> dict:
         output_data = f"Decision: Route to human review (max iterations reached)"
         scratchpad = add_scratchpad_note(state, "supervisor", note_message, input=input_data, output=output_data)
         
+        # LOG: Supervisor adding scratchpad note
+        logging.info(f"[BACKEND LOG] 👤 Supervisor adding scratchpad note (max iterations):", {
+            "scratchpad_length_before": len(state.get("scratchpad", [])),
+            "scratchpad_length_after": len(scratchpad),
+            "iteration": state["iteration_count"],
+            "message": note_message[:100]
+        })
+        
         return {
             "status": DraftStatus.REVIEWING.value,
             "next_agent": "human_gate",
@@ -67,6 +76,16 @@ async def supervisor_node(state: BlackboardState) -> dict:
         )
         output_data = f"Decision: Approve and route to human review"
         scratchpad = add_scratchpad_note(state, "supervisor", note_message, input=input_data, output=output_data)
+        
+        # LOG: Supervisor adding scratchpad note
+        logging.info(f"[BACKEND LOG] 👤 Supervisor adding scratchpad note (quality passed):", {
+            "scratchpad_length_before": len(state.get("scratchpad", [])),
+            "scratchpad_length_after": len(scratchpad),
+            "iteration": state["iteration_count"],
+            "safety_score": safety_score,
+            "empathy_score": empathy_score,
+            "message": note_message[:100]
+        })
         
         return {
             "status": DraftStatus.REVIEWING.value,
@@ -109,6 +128,17 @@ async def supervisor_node(state: BlackboardState) -> dict:
         f"Revision instructions: {revision_instructions[:200]}..."
     )
     scratchpad = add_scratchpad_note(state, "supervisor", note_message, input=input_data, output=output_data)
+    
+    # LOG: Supervisor adding scratchpad note
+    logging.info(f"[BACKEND LOG] 👤 Supervisor adding scratchpad note (revision required):", {
+        "scratchpad_length_before": len(state.get("scratchpad", [])),
+        "scratchpad_length_after": len(scratchpad),
+        "iteration": state["iteration_count"],
+        "safety_score": safety_score,
+        "empathy_score": empathy_score,
+        "next_agent": "drafter",
+        "message": note_message[:100]
+    })
     
     return {
         "status": DraftStatus.NEEDS_REVISION.value,

@@ -1,4 +1,5 @@
 """LangGraph workflow definition for CBT Protocol generation."""
+import logging
 from typing import Literal
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -32,16 +33,35 @@ def route_after_safety(state: BlackboardState) -> Literal["clinical_critic", "su
 
 def route_after_human_gate(state: BlackboardState) -> Literal["finalize", "drafter", "__end__"]:
     """Route based on human decision."""
-    next_agent = state.get("next_agent", "finalize")
+    next_agent = state.get("next_agent", "")
     status = state.get("status", "")
+    human_decision = state.get("human_decision")
     
+    # If cancelled, end workflow
     if status == "cancelled":
         return END
+    
+    # If human_decision exists, route based on action
+    if human_decision:
+        action = human_decision.get("action", "")
+        if action == "approve":
+            return "finalize"
+        elif action == "reject":
+            return "drafter"
+        elif action == "cancel":
+            return END
+    
+    # If next_agent is explicitly set, use it
     if next_agent == "finalize":
         return "finalize"
     if next_agent == "drafter":
         return "drafter"
-    return "finalize"
+    
+    # Default: if no decision and no next_agent, this shouldn't happen
+    # But if it does, don't route to finalize - workflow should be paused
+    # Return drafter as safe default (will cause another cycle)
+    logging.warning(f"route_after_human_gate: No human_decision and no next_agent set. Status: {status}")
+    return "drafter"  # Safe default - will go through cycle again
 
 
 def create_workflow(checkpointer: BaseCheckpointSaver | None = None) -> StateGraph:

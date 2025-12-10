@@ -6,6 +6,7 @@ export interface AgentNode {
   id: string
   label: string
   status: NodeStatus
+  executionCount: number
 }
 
 export interface LogEntry {
@@ -34,6 +35,7 @@ export interface SessionState {
   // Visualization
   nodes: AgentNode[]
   activeNode: string | null
+  previousNode: string | null  // Track previous agent for edge animation
   logs: LogEntry[]
   
   // Connection
@@ -51,12 +53,12 @@ export interface SessionState {
 }
 
 const initialNodes: AgentNode[] = [
-  { id: 'supervisor', label: 'Supervisor', status: 'idle' },
-  { id: 'drafter', label: 'Drafter', status: 'idle' },
-  { id: 'safety_guardian', label: 'Safety Guardian', status: 'idle' },
-  { id: 'clinical_critic', label: 'Clinical Critic', status: 'idle' },
-  { id: 'human_gate', label: 'Human Review', status: 'idle' },
-  { id: 'finalize', label: 'Finalize', status: 'idle' },
+  { id: 'supervisor', label: 'Supervisor', status: 'idle', executionCount: 0 },
+  { id: 'drafter', label: 'Drafter', status: 'idle', executionCount: 0 },
+  { id: 'safety_guardian', label: 'Safety Guardian', status: 'idle', executionCount: 0 },
+  { id: 'clinical_critic', label: 'Clinical Critic', status: 'idle', executionCount: 0 },
+  { id: 'human_gate', label: 'Human Review', status: 'idle', executionCount: 0 },
+  { id: 'finalize', label: 'Finalize', status: 'idle', executionCount: 0 },
 ]
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -75,52 +77,93 @@ export const useSessionStore = create<SessionState>((set) => ({
   isPaused: false,
 
   setSession: (sessionId, threadId, intent) =>
-    set({
+    set((state) => {
+      // When setting a new session, only clear logs if it's a completely new session
+      // If resuming an existing session (same threadId), preserve logs
+      const isNewSession = state.threadId !== threadId
+      return {
       sessionId,
       threadId,
       intent,
       status: 'running',
-      nodes: initialNodes.map((n) => ({ ...n, status: 'idle' })),
-      logs: [],
+        nodes: initialNodes.map((n) => ({ ...n, status: 'idle', executionCount: 0 })),
+        activeNode: null,
+        previousNode: null,
+        logs: isNewSession ? [] : state.logs, // Preserve logs when resuming same session
       currentDraft: '',
       safetyScore: 0,
       empathyScore: 0,
       iterationCount: 0,
+      }
     }),
 
   updateState: (data) => set((state) => ({ ...state, ...data })),
 
   setActiveNode: (nodeId) =>
-    set((state) => ({
+    set((state) => {
+      // Only update if nodeId changed to avoid unnecessary re-renders
+      if (state.activeNode === nodeId) return state
+      
+      return {
+        previousNode: state.activeNode,  // Track previous node for edge animation
       activeNode: nodeId,
-      nodes: state.nodes.map((n) => ({
-        ...n,
-        status: n.id === nodeId ? 'active' : n.status === 'active' ? 'complete' : n.status,
-      })),
-    })),
+        nodes: state.nodes.map((n) => {
+          if (n.id === nodeId) {
+            // Increment execution count when agent becomes active
+            return { ...n, status: 'active' as NodeStatus, executionCount: n.executionCount + 1 }
+          }
+          // Keep completed nodes as complete, don't revert them
+          if (n.status === 'complete') {
+            return n
+          }
+          // Reset active nodes that are no longer active (unless they're complete)
+          return { ...n, status: n.status === 'active' ? 'idle' as NodeStatus : n.status }
+        }),
+      }
+    }),
 
   updateNodeStatus: (nodeId, status) =>
     set((state) => ({
       nodes: state.nodes.map((n) => (n.id === nodeId ? { ...n, status } : n)),
     })),
 
-  addLog: (agent, message, type = 'info', input = null, output = null) =>
+  incrementAgentExecution: (nodeId) =>
     set((state) => ({
-      logs: [
-        ...state.logs,
-        {
+      nodes: state.nodes.map((n) => 
+        n.id === nodeId ? { ...n, executionCount: n.executionCount + 1 } : n
+      ),
+    })),
+
+  addLog: (agent, message, type = 'info', input = null, output = null) =>
+    set((state) => {
+      const newLog = {
           id: `${Date.now()}-${Math.random()}`,
           timestamp: new Date(),
           agent,
           message,
           type,
-          input,
-          output,
-        },
-      ],
-    })),
+        input,
+        output,
+      }
+      const newLogs = [...state.logs, newLog]
+      // LOG: Log added to Live Activity
+      console.log('[UI LOG] ➕ LOG ADDED:', {
+        agent,
+        message: message.substring(0, 100),
+        type,
+        totalLogs: newLogs.length,
+        timestamp: newLog.timestamp.toISOString()
+      })
+      return { logs: newLogs }
+    }),
 
-  clearLogs: () => set({ logs: [] }),
+  clearLogs: () => {
+    console.warn('[UI LOG] ⚠️ LOGS CLEARED - This should not happen during normal operation!', {
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack
+    })
+    set({ logs: [] })
+  },
 
   reset: () =>
     set({
@@ -134,6 +177,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       iterationCount: 0,
       nodes: initialNodes,
       activeNode: null,
+      previousNode: null,
       logs: [],
       isConnected: false,
       isPaused: false,

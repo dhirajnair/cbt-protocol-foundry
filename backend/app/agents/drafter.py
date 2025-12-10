@@ -1,5 +1,6 @@
 """Drafter Agent - Generates and revises CBT protocols."""
 import json
+import logging
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -23,11 +24,12 @@ async def drafter_node(state: BlackboardState) -> dict:
     
     # Build revision context if this is a revision
     revision_context = ""
-    if state["iteration_count"] > 0 and state["revision_instructions"]:
+    revision_instructions = state.get("revision_instructions", "")
+    if state.get("iteration_count", 0) > 0 and revision_instructions:
         revision_context = DRAFTER_REVISION_CONTEXT.format(
             iteration_count=state["iteration_count"],
-            revision_instructions=state["revision_instructions"],
-            previous_draft=state["current_draft"] or "No previous draft available",
+            revision_instructions=revision_instructions,
+            previous_draft=state.get("current_draft", "") or "No previous draft available",
         )
     
     # Build the task prompt
@@ -50,15 +52,16 @@ async def drafter_node(state: BlackboardState) -> dict:
     drafts = state["drafts"] + [new_draft]
     
     # Add note to scratchpad
+    revision_instructions = state.get("revision_instructions", "")
     note_message = f"Generated draft version {iteration}. " + (
-        f"Addressed: {state['revision_instructions'][:100]}..."
-        if state["revision_instructions"]
+        f"Addressed: {revision_instructions[:100]}..."
+        if revision_instructions
         else "Initial draft created."
     )
     input_data = (
-        f"Intent: {state['intent']}\n"
+        f"Intent: {state.get('intent', '')}\n"
         f"Iteration: {iteration}\n" +
-        (f"Revision instructions: {state['revision_instructions'][:500]}..." if state["revision_instructions"] else "Initial draft request")
+        (f"Revision instructions: {revision_instructions[:500]}..." if revision_instructions else "Initial draft request")
     )
     output_data = (
         f"Draft version {iteration} generated\n"
@@ -67,11 +70,21 @@ async def drafter_node(state: BlackboardState) -> dict:
     )
     scratchpad = add_scratchpad_note(state, "drafter", note_message, input=input_data, output=output_data)
     
+    # LOG: Drafter adding scratchpad note
+    logging.info(f"[BACKEND LOG] ✍️ Drafter adding scratchpad note:", {
+        "scratchpad_length_before": len(state.get("scratchpad", [])),
+        "scratchpad_length_after": len(scratchpad),
+        "iteration": iteration,
+        "draft_length": len(new_draft),
+        "is_revision": bool(revision_instructions),
+        "message": note_message[:100]
+    })
+    
     return {
         "current_draft": new_draft,
         "drafts": drafts,
         "iteration_count": iteration,
-        "status": DraftStatus.REVIEWING.value,
+        "status": DraftStatus.DRAFTING.value,  # Set to drafting during revision
         "scratchpad": scratchpad,
         "revision_instructions": "",  # Clear after using
         "next_agent": "safety_guardian",

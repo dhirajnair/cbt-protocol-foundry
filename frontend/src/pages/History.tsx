@@ -14,6 +14,7 @@ import {
   Search,
   FileText,
   Trash2,
+  Play,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toaster'
@@ -74,6 +75,34 @@ export default function History() {
       toast({
         title: 'Error',
         description: 'Failed to delete session',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleResumeSession = async (e: React.MouseEvent, session: Session) => {
+    e.stopPropagation() // Prevent navigation when clicking resume
+    
+    try {
+      const resumeInfo = await api.resumeSession(session.thread_id)
+      if (resumeInfo.can_resume) {
+        // Navigate to dashboard and it will auto-resume
+        navigate('/', { state: { resumeThreadId: session.thread_id } })
+        toast({
+          title: 'Resuming Session',
+          description: 'Redirecting to dashboard...',
+        })
+      } else {
+        toast({
+          title: 'Cannot Resume',
+          description: 'Session is not in a resumable state',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to resume session:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to resume session',
         variant: 'destructive',
       })
     }
@@ -215,6 +244,18 @@ export default function History() {
                       <Badge variant={getStatusVariant(session.status)}>
                         {session.status.replace('_', ' ')}
                       </Badge>
+                      {(session.status === 'running' || session.status === 'pending_review') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => handleResumeSession(e, session)}
+                          className="h-8 px-3 text-xs"
+                          title="Resume this session"
+                        >
+                          <Play className="w-3 h-3 mr-1" />
+                          Resume
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

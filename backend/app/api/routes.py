@@ -1,6 +1,7 @@
 """API routes for the CBT Protocol Foundry."""
 import asyncio
 import json
+import logging
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
@@ -71,12 +72,33 @@ active_connections: dict[str, list[WebSocket]] = {}
 
 async def broadcast_to_thread(thread_id: str, message: dict):
     """Broadcast a message to all WebSocket connections for a thread."""
+    # Debug logging for outbound WS messages
+    try:
+        msg_type = message.get("type")
+        data = message.get("data", {}) if isinstance(message, dict) else {}
+        sp = data.get("scratchpad", [])
+        sp_len = len(sp) if isinstance(sp, list) else 0
+        status = data.get("status")
+        next_agent = data.get("next_agent")
+        iteration_count = data.get("iteration_count")
+        print(f"[BACKEND LOG] -> broadcast type={msg_type} iter={iteration_count} status={status} next={next_agent} scratchpad_len={sp_len}")
+    except Exception:
+        pass
+    # Normalize message to JSON-serializable (convert datetimes to strings)
+    try:
+        message = json.loads(json.dumps(message, default=str))
+    except Exception as e:
+        logging.error(f"[BACKEND LOG] ❌ Failed to normalize WS message for thread {thread_id}: {e}", exc_info=True)
+        print(f"[BACKEND LOG] ❌ Failed to normalize WS message for thread {thread_id}: {e}")
+        # If normalization fails, fall back to sending the raw message (may still fail)
     if thread_id in active_connections:
         for ws in active_connections[thread_id]:
             try:
                 await ws.send_json(message)
-            except Exception:
-                pass  # Connection might be closed
+            except Exception as e:
+                # Log send failures so we know if clients didn't get the message
+                logging.error(f"[BACKEND LOG] ❌ Failed to send WS message to thread {thread_id}: {e}", exc_info=True)
+                print(f"[BACKEND LOG] ❌ Failed to send WS message to thread {thread_id}: {e}")
 
 
 @router.get("/health")
@@ -112,26 +134,82 @@ async def generate_protocol(request: GenerateRequest):
         try:
             config = {"configurable": {"thread_id": session.thread_id}}
             
-            # Stream events
+            logging.info(f"[BACKEND LOG] 🚀 Starting workflow for thread {session.thread_id}, intent: {initial_state.get('intent', '')[:50]}")
+            print(f"[BACKEND LOG] 🚀 Starting workflow for thread {session.thread_id}")  # stdout fallback
+            
+            # Stream events - use "values" mode for reliable state updates
+            # This streams the full accumulated state after each node execution
+            first_event = True
+            event_count = 0
             async for event in workflow.astream(initial_state, config, stream_mode="values"):
-                # Broadcast state updates
+                event_count += 1
+                # Per-event debug
+                try:
+                    sp = event.get("scratchpad", [])
+                    sp_len = len(sp) if isinstance(sp, list) else 0
+                    print(f"[BACKEND LOG] 📨 Event #{event_count} for thread {session.thread_id}: "
+                          f"status={event.get('status')} next={event.get('next_agent')} "
+                          f"iter={event.get('iteration_count')} sp_len={sp_len}")
+                except Exception:
+                    pass
+                # Skip empty events
+                if not event:
+                    continue
+                
+                # Get scratchpad from event (full accumulated state)
+                scratchpad = event.get("scratchpad", [])
+                
+                # Skip first event if it's just the initial state (before any nodes run)
+                # But only if scratchpad is truly empty - if nodes have run, scratchpad will have entries
+                if first_event:
+                    first_event = False
+                    if not scratchpad:
+                        # This is the initial state before any nodes run - skip it
+                        logging.info(f"[BACKEND LOG] ⏭️ Skipping initial state event (empty scratchpad) for thread {session.thread_id}")
+                        continue
+                
+                # LOG: State update being broadcast
+                iteration_count = event.get("iteration_count", 0)
+                status = event.get("status", "")
+                next_agent = event.get("next_agent", "")
+                
+                if scratchpad:
+                    latest_note = scratchpad[-1] if scratchpad else {}
+                    latest_agent = latest_note.get("agent", "unknown")
+                    logging.info(f"[BACKEND LOG] 📤 Broadcasting state_update for thread {session.thread_id}:", {
+                        "scratchpad_length": len(scratchpad),
+                        "latest_agent": latest_agent,
+                        "latest_message": latest_note.get("message", "")[:100] if latest_note else "",
+                        "iteration": iteration_count,
+                        "status": status,
+                        "next_agent": next_agent,
+                        "all_agents_in_scratchpad": [n.get("agent") for n in scratchpad],
+                    })
+                else:
+                    logging.warning(f"[BACKEND LOG] ⚠️ Broadcasting state_update with EMPTY scratchpad for thread {session.thread_id}!")
+                
+                # Broadcast state updates with full accumulated scratchpad
                 await broadcast_to_thread(session.thread_id, {
                     "type": "state_update",
                     "data": {
-                        "status": event.get("status", ""),
-                        "next_agent": event.get("next_agent", ""),
-                        "iteration_count": event.get("iteration_count", 0),
+                        "status": status,
+                        "next_agent": next_agent,
+                        "iteration_count": iteration_count,
                         "safety_score": event.get("safety_score", 0),
                         "empathy_score": event.get("empathy_score", 0),
                         "current_draft": event.get("current_draft", "")[:500],  # Truncate for WS
-                        "scratchpad": event.get("scratchpad", [])[-5:],  # Last 5 notes
+                        "scratchpad": scratchpad if scratchpad else [],  # ALL accumulated notes
                     }
                 })
+            
+            logging.info(f"[BACKEND LOG] ✅ Workflow stream completed for thread {session.thread_id}, processed {event_count} events")
+            print(f"[BACKEND LOG] ✅ Workflow stream completed for thread {session.thread_id}, processed {event_count} events")
             
             # Check final state
             state = await workflow.aget_state(config)
             
             if state.next:  # Graph is paused (at interrupt)
+                logging.info(f"[BACKEND LOG] 🛑 Workflow paused at interrupt for thread {session.thread_id}, next node: {state.next[0] if state.next else 'unknown'}")
                 # Update session to pending review
                 session_service.update(
                     session.id,
@@ -142,7 +220,18 @@ async def generate_protocol(request: GenerateRequest):
                         iteration_count=state.values.get("iteration_count", 0),
                     )
                 )
-                # Send interrupt with full draft (not truncated)
+                # Get scratchpad from state to preserve iteration 1 history
+                scratchpad = state.values.get("scratchpad", [])
+                
+                # LOG: Interrupt with scratchpad
+                if scratchpad:
+                    logging.info(f"[BACKEND LOG] 🛑 Sending interrupt with {len(scratchpad)} scratchpad notes for thread {session.thread_id}")
+                    logging.info(f"[BACKEND LOG] Scratchpad agents: {[n.get('agent') for n in scratchpad]}")
+                else:
+                    logging.warning(f"[BACKEND LOG] ⚠️ Sending interrupt with EMPTY scratchpad for thread {session.thread_id}!")
+                
+                # Send interrupt with full draft AND scratchpad (not truncated)
+                # CRITICAL: Include scratchpad so iteration 1 notes are preserved
                 await broadcast_to_thread(session.thread_id, {
                     "type": "interrupt",
                     "data": {
@@ -151,6 +240,7 @@ async def generate_protocol(request: GenerateRequest):
                         "safety_score": state.values.get("safety_score", 0),
                         "empathy_score": state.values.get("empathy_score", 0),
                         "iteration_count": state.values.get("iteration_count", 0),
+                        "scratchpad": scratchpad if scratchpad else [],  # ALL notes to preserve iteration 1 history
                     }
                 })
             else:
@@ -173,6 +263,8 @@ async def generate_protocol(request: GenerateRequest):
                 
         except Exception as e:
             # Update session as failed
+            logging.error(f"[BACKEND LOG] ❌ Workflow error for session {session.id}, thread {session.thread_id}: {e}", exc_info=True)
+            print(f"[BACKEND LOG] ❌ Workflow error for session {session.id}, thread {session.thread_id}: {e}")  # stdout fallback
             session_service.update(
                 session.id,
                 SessionUpdate(
@@ -267,8 +359,11 @@ async def submit_review(thread_id: str, request: ReviewRequest):
         state = await workflow.aget_state(config)
         if not state.values:
             raise HTTPException(status_code=404, detail="Session not found")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Error getting workflow state for thread {thread_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve workflow state")
     
     # Update state with human decision
     human_decision = {
@@ -277,6 +372,11 @@ async def submit_review(thread_id: str, request: ReviewRequest):
         "feedback": request.feedback,
     }
     
+    # Get session
+    session = session_service.get_by_thread_id(thread_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
     # Update the state with the decision
     await workflow.aupdate_state(
         config,
@@ -284,74 +384,186 @@ async def submit_review(thread_id: str, request: ReviewRequest):
         as_node="human_gate"
     )
     
-    # Get session
-    session = session_service.get_by_thread_id(thread_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
     # Resume the workflow
     async def resume_workflow():
         try:
+            # Stream workflow events - use "values" mode for consistency with initial workflow
+            # This streams the full accumulated state after each node execution
             async for event in workflow.astream(None, config, stream_mode="values"):
+                # Skip empty events
+                if not event:
+                    continue
+                
+                # Get scratchpad from event (full accumulated state)
+                scratchpad = event.get("scratchpad", [])
+                event_status = event.get("status", "")
+                next_agent = event.get("next_agent", "")
+                
+                # LOG: Resume workflow state update
+                iteration_count = event.get("iteration_count", 0)
+                if scratchpad:
+                    latest_note = scratchpad[-1] if scratchpad else {}
+                    latest_agent = latest_note.get("agent", "unknown")
+                    logging.info(f"[BACKEND LOG] 🔄 Resume workflow state_update for thread {thread_id}:", {
+                        "scratchpad_length": len(scratchpad),
+                        "latest_agent": latest_agent,
+                        "iteration": iteration_count,
+                        "status": event_status,
+                        "next_agent": next_agent,
+                        "all_agents_in_scratchpad": [n.get("agent") for n in scratchpad],
+                    })
+                else:
+                    logging.warning(f"[BACKEND LOG] ⚠️ Resume workflow state_update with EMPTY scratchpad for thread {thread_id}!")
+                
                 await broadcast_to_thread(thread_id, {
                     "type": "state_update",
                     "data": {
-                        "status": event.get("status", ""),
-                        "next_agent": event.get("next_agent", ""),
-                        "iteration_count": event.get("iteration_count", 0),
+                        "status": event_status,
+                        "next_agent": next_agent,
+                        "iteration_count": iteration_count,
                         "safety_score": event.get("safety_score", 0),
                         "empathy_score": event.get("empathy_score", 0),
+                        "current_draft": event.get("current_draft", ""),
+                        "scratchpad": scratchpad if scratchpad else [],  # ALL accumulated notes to preserve history
                     }
                 })
             
-            # Get final state
+                # If rejection and routing to drafter, update session status once
+                if request.action == "reject" and next_agent == "drafter" and event_status in ["needs_revision", "running", "drafting"]:
+                    session_service.update(
+                        session.id,
+                        SessionUpdate(
+                            status=SessionStatus.RUNNING.value,
+                            iteration_count=event.get("iteration_count", 0)
+                        )
+                    )
+                
+                # Check if supervisor routed to human_gate - workflow will pause at interrupt
+                # Only check when supervisor sets next_agent to human_gate (not on every event)
+                if next_agent == "human_gate" and event_status == "reviewing":
+                    # Verify workflow paused at interrupt
+                    current_state = await workflow.aget_state(config)
+                    if current_state.next:
+                        next_node = current_state.next[0] if current_state.next else None
+                        if next_node == "human_gate":
+                            # Workflow paused at human_gate interrupt - break to handle pause
+                            logging.info(f"Workflow paused at human_gate interrupt for thread {thread_id} after revision cycle")
+                            break
+                    # If not paused, log warning but continue (shouldn't happen)
+                    else:
+                        logging.warning(f"Supervisor routed to human_gate but workflow didn't pause for thread {thread_id}")
+            
+            # Get final state after streaming completes or pauses
             final_state = await workflow.aget_state(config)
             
-            if final_state.next:  # Still paused (another review needed)
-                session_service.update(
-                    session.id,
-                    SessionUpdate(
-                        status=SessionStatus.PENDING_REVIEW.value,
-                        iteration_count=final_state.values.get("iteration_count", 0),
+            # Check if workflow is paused (at human_gate interrupt)
+            if final_state.next:  # Still paused (at interrupt)
+                # Check if paused at human_gate (pending review)
+                next_node = final_state.next[0] if final_state.next else None
+                if next_node == "human_gate":
+                    # Workflow paused at human_gate - update to pending_review
+                    session_service.update(
+                        session.id,
+                        SessionUpdate(
+                            status=SessionStatus.PENDING_REVIEW.value,
+                            iteration_count=final_state.values.get("iteration_count", 0),
+                            current_draft=final_state.values.get("current_draft"),
+                            safety_score=final_state.values.get("safety_score"),
+                            empathy_score=final_state.values.get("empathy_score"),
+                        )
                     )
-                )
-                await broadcast_to_thread(thread_id, {
-                    "type": "interrupt",
-                    "data": {"status": "pending_review"}
-                })
+                    interrupt_scratchpad = final_state.values.get("scratchpad", [])
+                    await broadcast_to_thread(thread_id, {
+                        "type": "interrupt",
+                        "data": {
+                            "status": "pending_review",
+                            "current_draft": final_state.values.get("current_draft", ""),
+                            "safety_score": final_state.values.get("safety_score", 0),
+                            "empathy_score": final_state.values.get("empathy_score", 0),
+                            "iteration_count": final_state.values.get("iteration_count", 0),
+                            "scratchpad": interrupt_scratchpad if interrupt_scratchpad else [],
+                        }
+                    })
+                else:
+                    # Paused at some other node - keep as running
+                    session_service.update(
+                        session.id,
+                        SessionUpdate(
+                            status=SessionStatus.RUNNING.value,
+                            iteration_count=final_state.values.get("iteration_count", 0),
+                        )
+                    )
             else:
-                # Graph completed
+                # Graph completed - this should NOT happen after rejection
+                # Rejection should always pause at human_gate again
                 final_status = final_state.values.get("status", "")
-                if final_status == "approved":
+                
+                # Only approve if the human actually approved
+                if request.action == "approve" and final_status == "approved":
                     session_service.update(
                         session.id,
                         SessionUpdate(
                             status=SessionStatus.APPROVED.value,
                             final_artifact=final_state.values.get("current_draft"),
+                            safety_score=final_state.values.get("safety_score"),
+                            empathy_score=final_state.values.get("empathy_score"),
+                            iteration_count=final_state.values.get("iteration_count", 0),
                         )
                     )
+                    await broadcast_to_thread(thread_id, {
+                        "type": "complete",
+                        "data": {"status": final_status}
+                    })
                 elif request.action == "cancel":
                     session_service.update(
                         session.id,
                         SessionUpdate(status=SessionStatus.REJECTED.value)
                     )
-                
-                await broadcast_to_thread(thread_id, {
-                    "type": "complete",
-                    "data": {"status": final_status}
-                })
+                    await broadcast_to_thread(thread_id, {
+                        "type": "complete",
+                        "data": {"status": "rejected"}
+                    })
+                elif request.action == "reject":
+                    # This should not happen - rejection should pause at human_gate
+                    # Log detailed error for debugging
+                    next_info = final_state.next[0] if final_state.next else "None"
+                    logging.error(
+                        f"Workflow completed after rejection for thread {thread_id}. "
+                        f"Final status: {final_status}, "
+                        f"Next node: {next_info}, "
+                        f"Iteration: {final_state.values.get('iteration_count', 0)}, "
+                        f"Human decision in state: {final_state.values.get('human_decision')}"
+                    )
+                    # This shouldn't happen with the routing fix
+                    # Set status to running and let user resume manually
+                    session_service.update(
+                        session.id,
+                        SessionUpdate(
+                            status=SessionStatus.RUNNING.value,
+                            iteration_count=final_state.values.get("iteration_count", 0),
+                        )
+                    )
+                    await broadcast_to_thread(thread_id, {
+                        "type": "error",
+                        "data": {
+                            "message": "Workflow completed unexpectedly after rejection. Session set to running state.",
+                            "status": "running"
+                        }
+                    })
                 
         except Exception as e:
+            error_msg = str(e)
+            logging.error(f"Error in workflow resume for thread {thread_id}: {error_msg}", exc_info=True)
             session_service.update(
                 session.id,
                 SessionUpdate(
                     status=SessionStatus.FAILED.value,
-                    error_message=str(e)
+                    error_message=error_msg
                 )
             )
             await broadcast_to_thread(thread_id, {
                 "type": "error",
-                "data": {"message": str(e)}
+                "data": {"message": error_msg}
             })
     
     # Start resume in background
@@ -417,7 +629,7 @@ async def resume_session(thread_id: str):
                                 "empathy_score": event.get("empathy_score", 0),
                                 "iteration_count": event.get("iteration_count", 0),
                                 "next_agent": event.get("next_agent"),
-                                "scratchpad": event.get("scratchpad", [])[-5:],
+                                "scratchpad": event.get("scratchpad", []),  # ALL notes to preserve history
                             }
                         })
                         

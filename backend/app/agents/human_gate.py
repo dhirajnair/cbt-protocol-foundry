@@ -93,6 +93,8 @@ async def human_gate_node(state: BlackboardState) -> dict:
             }
     
     # No decision yet - this state will be returned when graph is interrupted
+    # IMPORTANT: Don't set next_agent here - workflow is paused at interrupt
+    # The routing function will handle the next step when workflow resumes
     note_message = (
         f"Awaiting human review. "
         f"Current scores - Safety: {state.get('safety_score', 0)}/100, "

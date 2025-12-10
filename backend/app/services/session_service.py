@@ -107,7 +107,7 @@ class SessionService:
             if status:
                 statement = statement.where(SessionModel.status == status)
             return len(list(db.exec(statement).all()))
-    
+
     @staticmethod
     def delete(session_id: str) -> bool:
         """Delete a session by ID."""

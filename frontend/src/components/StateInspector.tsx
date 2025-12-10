@@ -14,8 +14,11 @@ export default function StateInspector() {
     iterationCount,
     status,
     threadId,
+    activeNode,
+    nodes,
   } = useSessionStore()
 
+  // State Inspector shows only CURRENT state (not historical sequence)
   const state = {
     thread_id: threadId,
     intent,
@@ -24,6 +27,8 @@ export default function StateInspector() {
     empathy_score: empathyScore,
     iteration_count: iterationCount,
     status,
+    active_node: activeNode,
+    current_node_status: activeNode ? nodes.find((n) => n.id === activeNode)?.status : null,
   }
 
   return (
@@ -60,6 +65,28 @@ export default function StateInspector() {
             <MetricCard label="Empathy" value={empathyScore} max={100} color="primary" />
             <MetricCard label="Iterations" value={iterationCount} max={5} color="accent" />
           </div>
+          
+          {/* Current Activity */}
+          {activeNode && (
+            <div className="py-3 border-b border-slate-200/50">
+              <div className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+                Current Activity
+              </div>
+              <div className="text-sm font-medium text-slate-700 capitalize">
+                {activeNode.replace('_', ' ')} - {nodes.find((n) => n.id === activeNode)?.status || 'idle'}
+              </div>
+            </div>
+          )}
+          {!activeNode && status !== 'idle' && (
+            <div className="py-3 border-b border-slate-200/50">
+              <div className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+                Current Activity
+              </div>
+              <div className="text-sm font-medium text-slate-700">
+                {status === 'approved' ? 'Completed' : status === 'pending_review' ? 'Awaiting Review' : 'Idle'}
+              </div>
+            </div>
+          )}
 
           {/* JSON view */}
           <div className="mt-3">
