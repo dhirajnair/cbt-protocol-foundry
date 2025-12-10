@@ -33,7 +33,13 @@ async def supervisor_node(state: BlackboardState) -> dict:
     if state["iteration_count"] >= settings.max_iterations:
         # Force to human review regardless of scores
         note_message = f"Max iterations ({settings.max_iterations}) reached. Routing to human review."
-        scratchpad = add_scratchpad_note(state, "supervisor", note_message)
+        input_data = (
+            f"Iteration count: {state['iteration_count']}/{settings.max_iterations}\n"
+            f"Safety score: {state.get('safety_score', 0)}/100\n"
+            f"Empathy score: {state.get('empathy_score', 0)}/100"
+        )
+        output_data = f"Decision: Route to human review (max iterations reached)"
+        scratchpad = add_scratchpad_note(state, "supervisor", note_message, input=input_data, output=output_data)
         
         return {
             "status": DraftStatus.REVIEWING.value,
@@ -53,7 +59,14 @@ async def supervisor_node(state: BlackboardState) -> dict:
             f"Quality checks passed. Safety: {safety_score}/100, Empathy: {empathy_score}/100. "
             f"Routing to human review."
         )
-        scratchpad = add_scratchpad_note(state, "supervisor", note_message)
+        input_data = (
+            f"Iteration count: {state['iteration_count']}/{settings.max_iterations}\n"
+            f"Safety score: {safety_score}/100 (threshold: {settings.safety_threshold})\n"
+            f"Empathy score: {empathy_score}/100 (threshold: {settings.empathy_threshold})\n"
+            f"Safety flags: {len(state.get('safety_flags', []))}"
+        )
+        output_data = f"Decision: Approve and route to human review"
+        scratchpad = add_scratchpad_note(state, "supervisor", note_message, input=input_data, output=output_data)
         
         return {
             "status": DraftStatus.REVIEWING.value,
@@ -83,7 +96,19 @@ async def supervisor_node(state: BlackboardState) -> dict:
         f"Revision required. {', '.join(revision_reasons)}. "
         f"Iteration {state['iteration_count']}/{settings.max_iterations}."
     )
-    scratchpad = add_scratchpad_note(state, "supervisor", note_message)
+    input_data = (
+        f"Iteration count: {state['iteration_count']}/{settings.max_iterations}\n"
+        f"Safety score: {safety_score}/100 (threshold: {settings.safety_threshold})\n"
+        f"Empathy score: {empathy_score}/100 (threshold: {settings.empathy_threshold})\n"
+        f"Safety flags: {len(state.get('safety_flags', []))}\n"
+        f"Existing revision instructions: {state.get('revision_instructions', 'None')[:200]}"
+    )
+    output_data = (
+        f"Decision: Revision required\n"
+        f"Next agent: drafter\n"
+        f"Revision instructions: {revision_instructions[:200]}..."
+    )
+    scratchpad = add_scratchpad_note(state, "supervisor", note_message, input=input_data, output=output_data)
     
     return {
         "status": DraftStatus.NEEDS_REVISION.value,

@@ -63,7 +63,19 @@ async def clinical_critic_node(state: BlackboardState) -> dict:
         f"Strengths: {len(strengths)}. Areas to improve: {len(improvements)}. "
         f"Appropriateness: {appropriateness}"
     )
-    scratchpad = add_scratchpad_note(state, "clinical_critic", note_message)
+    input_data = (
+        f"Draft to evaluate:\n{state['current_draft'][:1000]}..."
+    )
+    output_data = (
+        f"Empathy score: {empathy_score}/100\n"
+        f"Clinical appropriateness: {appropriateness}\n"
+        f"Strengths identified: {len(strengths)}\n" +
+        (f"Strengths:\n" + "\n".join([f"- {s}" for s in strengths[:3]]) if strengths else "No strengths listed") +
+        f"\n\nAreas for improvement: {len(improvements)}\n" +
+        (f"Improvements:\n" + "\n".join([f"- {imp}" for imp in improvements[:3]]) if improvements else "No improvements needed") +
+        f"\n\nAssessment: {assessment[:300]}..."
+    )
+    scratchpad = add_scratchpad_note(state, "clinical_critic", note_message, input=input_data, output=output_data)
     
     # Add improvement notes to revision instructions if empathy is low
     current_instructions = state.get("revision_instructions", "")

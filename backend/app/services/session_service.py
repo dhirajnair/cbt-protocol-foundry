@@ -107,6 +107,29 @@ class SessionService:
             if status:
                 statement = statement.where(SessionModel.status == status)
             return len(list(db.exec(statement).all()))
+    
+    @staticmethod
+    def delete(session_id: str) -> bool:
+        """Delete a session by ID."""
+        with Session(engine) as db:
+            session = db.get(SessionModel, session_id)
+            if not session:
+                return False
+            db.delete(session)
+            db.commit()
+            return True
+    
+    @staticmethod
+    def delete_by_thread_id(thread_id: str) -> bool:
+        """Delete a session by thread_id."""
+        with Session(engine) as db:
+            statement = select(SessionModel).where(SessionModel.thread_id == thread_id)
+            session = db.exec(statement).first()
+            if not session:
+                return False
+            db.delete(session)
+            db.commit()
+            return True
 
 
 session_service = SessionService()

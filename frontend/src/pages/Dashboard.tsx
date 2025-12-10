@@ -9,8 +9,9 @@ import StateInspector from '@/components/StateInspector'
 import ReviewModal from '@/components/ReviewModal'
 import { useSessionStore } from '@/store/sessionStore'
 import { api } from '@/lib/api'
-import { Sparkles, Activity, History, ArrowRight } from 'lucide-react'
+import { Sparkles, Activity, History, ArrowRight, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toaster'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -24,11 +25,42 @@ export default function Dashboard() {
     currentDraft,
     safetyScore,
     empathyScore,
+    sessionId,
     updateState,
     setActiveNode,
     addLog,
     reset,
+    setSession,
   } = useSessionStore()
+
+  // Check for existing session on mount and resume if stuck
+  useEffect(() => {
+    const checkAndResume = async () => {
+      const currentThreadId = threadId
+      const currentStatus = status
+      if (currentThreadId && (currentStatus === 'running' || currentStatus === 'pending_review')) {
+        try {
+          const resumeInfo = await api.resumeSession(currentThreadId)
+          if (resumeInfo.session_id && !sessionId) {
+            updateState({ sessionId: resumeInfo.session_id })
+          }
+          if (resumeInfo.can_resume && !wsRef.current) {
+            // Reconnect websocket to resume
+            connectWebSocket(currentThreadId)
+            toast({
+              title: 'Session Resumed',
+              description: 'Resuming from last checkpoint',
+              variant: 'success',
+            })
+          }
+        } catch (error) {
+          console.error('Failed to resume session:', error)
+        }
+      }
+    }
+    checkAndResume()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount
 
   // Handle WebSocket connection
   const connectWebSocket = useCallback((tid: string) => {
@@ -50,38 +82,50 @@ export default function Dashboard() {
         
         switch (data.type) {
           case 'initial_state':
+            const initialStateStatus = data.data.status
             updateState({
               currentDraft: data.data.current_draft,
               safetyScore: data.data.safety_score,
               empathyScore: data.data.empathy_score,
               iterationCount: data.data.iteration_count,
-              status: data.data.status,
+              status: initialStateStatus,
               isPaused: data.data.is_paused,
             })
+            // Set correct active node based on status
+            if (initialStateStatus === 'pending_review') {
+              setActiveNode('human_gate')
+            } else if (data.data.next_agent) {
+              setActiveNode(data.data.next_agent)
+            }
             if (data.data.is_paused) {
               setShowReviewModal(true)
             }
             break
 
           case 'state_update':
+            const newStatus = data.data.status
             updateState({
-              status: data.data.status,
+              status: newStatus,
               safetyScore: data.data.safety_score || 0,
               empathyScore: data.data.empathy_score || 0,
               iterationCount: data.data.iteration_count || 0,
               currentDraft: data.data.current_draft || '',
             })
             
-            // Update active node
-            if (data.data.next_agent) {
+            // Update active node - clear if pending_review, otherwise set next_agent
+            if (newStatus === 'pending_review') {
+              setActiveNode('human_gate')
+            } else if (data.data.next_agent && newStatus !== 'pending_review') {
               setActiveNode(data.data.next_agent)
               addLog(data.data.next_agent || 'system', `Processing...`, 'info')
+            } else if (newStatus === 'approved' || newStatus === 'failed' || newStatus === 'rejected') {
+              setActiveNode(null)
             }
             
             // Add scratchpad notes as logs
             if (data.data.scratchpad) {
-              data.data.scratchpad.forEach((note: { agent: string; message: string }) => {
-                addLog(note.agent, note.message, 'info')
+              data.data.scratchpad.forEach((note: { agent: string; message: string; input?: string | null; output?: string | null }) => {
+                addLog(note.agent, note.message, 'info', note.input, note.output)
               })
             }
             break
@@ -94,6 +138,7 @@ export default function Dashboard() {
               safetyScore: data.data.safety_score || 0,
               empathyScore: data.data.empathy_score || 0,
             })
+            setActiveNode('human_gate')
             addLog('system', 'Awaiting human review', 'warning')
             
             // If draft is in the interrupt message, show modal immediately
@@ -177,6 +222,39 @@ export default function Dashboard() {
     }
   }
 
+
+  const handleResumeSession = async () => {
+    if (!threadId) return
+    
+    try {
+      const resumeInfo = await api.resumeSession(threadId)
+      if (resumeInfo.session_id && !sessionId) {
+        updateState({ sessionId: resumeInfo.session_id })
+      }
+      if (resumeInfo.can_resume) {
+        connectWebSocket(threadId)
+        toast({
+          title: 'Session Resumed',
+          description: 'Resuming from last checkpoint',
+          variant: 'success',
+        })
+      } else {
+        toast({
+          title: 'Cannot Resume',
+          description: 'Session is not in a resumable state',
+          variant: 'warning',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to resume session:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to resume session',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -194,6 +272,12 @@ export default function Dashboard() {
             <Button variant="outline" onClick={handleNewSession}>
               <Sparkles className="w-4 h-4 mr-2" />
               New Protocol
+            </Button>
+          )}
+          {threadId && status !== 'idle' && status !== 'approved' && (
+            <Button variant="outline" onClick={handleResumeSession}>
+              <Play className="w-4 h-4 mr-2" />
+              Resume
             </Button>
           )}
           <Button variant="ghost" onClick={() => navigate('/history')}>

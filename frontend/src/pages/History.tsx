@@ -13,8 +13,10 @@ import {
   Filter,
   Search,
   FileText,
+  Trash2,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { toast } from '@/components/ui/toaster'
 
 const statusOptions = [
   { value: '', label: 'All' },
@@ -48,6 +50,32 @@ export default function History() {
       console.error('Failed to load sessions:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation() // Prevent navigation when clicking delete
+    
+    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await api.deleteSession(sessionId)
+      toast({
+        title: 'Session Deleted',
+        description: 'The session has been deleted successfully',
+        variant: 'success',
+      })
+      // Reload sessions
+      loadSessions()
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete session',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -151,20 +179,22 @@ export default function History() {
           ) : (
             <div className="space-y-2">
               {filteredSessions.map((session) => (
-                <button
+                <div
                   key={session.id}
-                  onClick={() => navigate(`/session/${session.id}`)}
-                  className="w-full p-4 rounded-xl bg-white/60 hover:bg-white border border-slate-200/50 hover:border-primary/30 transition-all text-left group"
+                  className="w-full p-4 rounded-xl bg-white/60 hover:bg-white border border-slate-200/50 hover:border-primary/30 transition-all group"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                    <button
+                      onClick={() => navigate(`/session/${session.id}`)}
+                      className="flex-1 min-w-0 text-left"
+                    >
                       <p className="font-medium text-slate-700 group-hover:text-primary transition-colors">
                         {truncate(session.intent, 80)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDate(session.created_at)}
                       </p>
-                    </div>
+                    </button>
                     <div className="flex items-center gap-3 shrink-0">
                       {session.safety_score !== null && (
                         <div className="text-center">
@@ -185,10 +215,23 @@ export default function History() {
                       <Badge variant={getStatusVariant(session.status)}>
                         {session.status.replace('_', ' ')}
                       </Badge>
-                      <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <button
+                        onClick={() => navigate(`/session/${session.id}`)}
+                        className="text-slate-400 hover:text-primary transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

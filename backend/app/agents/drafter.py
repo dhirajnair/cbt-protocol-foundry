@@ -55,7 +55,17 @@ async def drafter_node(state: BlackboardState) -> dict:
         if state["revision_instructions"]
         else "Initial draft created."
     )
-    scratchpad = add_scratchpad_note(state, "drafter", note_message)
+    input_data = (
+        f"Intent: {state['intent']}\n"
+        f"Iteration: {iteration}\n" +
+        (f"Revision instructions: {state['revision_instructions'][:500]}..." if state["revision_instructions"] else "Initial draft request")
+    )
+    output_data = (
+        f"Draft version {iteration} generated\n"
+        f"Length: {len(new_draft)} characters\n"
+        f"Preview: {new_draft[:200]}..."
+    )
+    scratchpad = add_scratchpad_note(state, "drafter", note_message, input=input_data, output=output_data)
     
     return {
         "current_draft": new_draft,

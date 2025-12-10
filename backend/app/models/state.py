@@ -34,6 +34,8 @@ class Note(BaseModel):
     agent: str
     message: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    input: str | None = None  # Input data for the agent activity
+    output: str | None = None  # Output data from the agent activity
 
 
 class SafetyFlag(BaseModel):
@@ -113,8 +115,14 @@ def create_initial_state(
     )
 
 
-def add_scratchpad_note(state: BlackboardState, agent: str, message: str) -> list[dict]:
+def add_scratchpad_note(
+    state: BlackboardState, 
+    agent: str, 
+    message: str,
+    input: str | None = None,
+    output: str | None = None
+) -> list[dict]:
     """Add a note to the scratchpad and return updated scratchpad."""
-    note = Note(agent=agent, message=message)
+    note = Note(agent=agent, message=message, input=input, output=output)
     return state["scratchpad"] + [note.model_dump()]
 

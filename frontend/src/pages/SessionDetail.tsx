@@ -249,14 +249,14 @@ export default function SessionDetail() {
             <CardTitle className="text-lg">Agent Activity Log</CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-2">
+            <ScrollArea className="h-[500px]">
+              <div className="space-y-3">
                 {state.scratchpad.map((note, i) => (
                   <div
                     key={i}
-                    className="p-3 rounded-lg bg-white/60 border border-slate-200/50"
+                    className="p-4 rounded-lg bg-white/60 border border-slate-200/50"
                   >
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline" className="text-xs capitalize">
                         {note.agent.replace('_', ' ')}
                       </Badge>
@@ -264,7 +264,32 @@ export default function SessionDetail() {
                         {new Date(note.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-600">{note.message}</p>
+                    <p className="text-sm text-slate-700 mb-3 font-medium">{note.message}</p>
+                    
+                    {(note.input || note.output) && (
+                      <div className="space-y-2 mt-3 pt-3 border-t border-slate-200/50">
+                        {note.input && (
+                          <div>
+                            <div className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">
+                              Input
+                            </div>
+                            <div className="text-xs text-slate-600 bg-slate-50/80 p-2 rounded border border-slate-200/50 font-mono whitespace-pre-wrap break-words">
+                              {note.input}
+                            </div>
+                          </div>
+                        )}
+                        {note.output && (
+                          <div>
+                            <div className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">
+                              Output
+                            </div>
+                            <div className="text-xs text-slate-600 bg-blue-50/80 p-2 rounded border border-blue-200/50 font-mono whitespace-pre-wrap break-words">
+                              {note.output}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

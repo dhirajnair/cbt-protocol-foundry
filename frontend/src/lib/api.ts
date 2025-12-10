@@ -32,6 +32,8 @@ export interface StateResponse {
     agent: string
     message: string
     timestamp: string
+    input?: string | null
+    output?: string | null
   }>
 }
 
@@ -98,6 +100,22 @@ export const api = {
   }> {
     const res = await fetch(`${API_BASE}/api/resume/${threadId}`)
     if (!res.ok) throw new Error('Failed to resume session')
+    return res.json()
+  },
+
+  async deleteSession(sessionId: string): Promise<{ status: string; session_id: string }> {
+    const res = await fetch(`${API_BASE}/api/session/${sessionId}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) throw new Error('Failed to delete session')
+    return res.json()
+  },
+
+  async deleteSessionByThread(threadId: string): Promise<{ status: string; thread_id: string }> {
+    const res = await fetch(`${API_BASE}/api/session/thread/${threadId}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) throw new Error('Failed to delete session')
     return res.json()
   },
 

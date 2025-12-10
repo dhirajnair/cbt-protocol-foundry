@@ -14,6 +14,8 @@ export interface LogEntry {
   agent: string
   message: string
   type: 'info' | 'success' | 'warning' | 'error'
+  input?: string | null
+  output?: string | null
 }
 
 export interface SessionState {
@@ -43,7 +45,7 @@ export interface SessionState {
   updateState: (data: Partial<SessionState>) => void
   setActiveNode: (nodeId: string | null) => void
   updateNodeStatus: (nodeId: string, status: NodeStatus) => void
-  addLog: (agent: string, message: string, type?: LogEntry['type']) => void
+  addLog: (agent: string, message: string, type?: LogEntry['type'], input?: string | null, output?: string | null) => void
   clearLogs: () => void
   reset: () => void
 }
@@ -102,7 +104,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       nodes: state.nodes.map((n) => (n.id === nodeId ? { ...n, status } : n)),
     })),
 
-  addLog: (agent, message, type = 'info') =>
+  addLog: (agent, message, type = 'info', input = null, output = null) =>
     set((state) => ({
       logs: [
         ...state.logs,
@@ -112,6 +114,8 @@ export const useSessionStore = create<SessionState>((set) => ({
           agent,
           message,
           type,
+          input,
+          output,
         },
       ],
     })),

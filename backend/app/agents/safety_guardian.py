@@ -70,7 +70,17 @@ async def safety_guardian_node(state: BlackboardState) -> dict:
         f"Flags: {len(flags)}. "
         f"Assessment: {assessment[:100]}..."
     )
-    scratchpad = add_scratchpad_note(state, "safety_guardian", note_message)
+    input_data = (
+        f"Draft to analyze:\n{state['current_draft'][:1000]}..."
+    )
+    output_data = (
+        f"Safety score: {safety_score}/100\n"
+        f"Flags found: {len(flags)}\n" +
+        (f"Flags:\n" + "\n".join([f"- Line {f.get('line', '?')}: {f.get('reason', 'Unknown')} [{f.get('severity', 'warning')}]" for f in flags[:5]]) if flags else "No flags") +
+        f"\n\nAssessment: {assessment[:300]}..." +
+        (f"\n\nRecommendations:\n" + "\n".join([f"- {r}" for r in recommendations[:3]]) if recommendations else "")
+    )
+    scratchpad = add_scratchpad_note(state, "safety_guardian", note_message, input=input_data, output=output_data)
     
     # Build revision instructions if needed
     revision_instructions = ""

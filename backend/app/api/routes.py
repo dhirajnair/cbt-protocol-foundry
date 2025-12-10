@@ -360,6 +360,24 @@ async def submit_review(thread_id: str, request: ReviewRequest):
     return {"status": "resuming", "thread_id": thread_id}
 
 
+@router.delete("/api/session/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session by ID."""
+    success = session_service.delete(session_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "deleted", "session_id": session_id}
+
+
+@router.delete("/api/session/thread/{thread_id}")
+async def delete_session_by_thread(thread_id: str):
+    """Delete a session by thread_id."""
+    success = session_service.delete_by_thread_id(thread_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "deleted", "thread_id": thread_id}
+
+
 @router.get("/api/resume/{thread_id}")
 async def resume_session(thread_id: str):
     """
@@ -382,12 +400,47 @@ async def resume_session(thread_id: str):
         if not state.values:
             raise HTTPException(status_code=404, detail="No checkpoint found")
         
+        # If there's a next node and status is running/pending_review, resume workflow
+        can_resume = bool(state.next) and session.status in [SessionStatus.RUNNING.value, SessionStatus.PENDING_REVIEW.value]
+        
+        if can_resume and state.next:
+            # Resume workflow in background
+            async def resume_workflow():
+                try:
+                    async for event in workflow.astream(None, config, stream_mode="values"):
+                        await broadcast_to_thread(thread_id, {
+                            "type": "state_update",
+                            "data": {
+                                "status": event.get("status", ""),
+                                "current_draft": event.get("current_draft", ""),
+                                "safety_score": event.get("safety_score", 0),
+                                "empathy_score": event.get("empathy_score", 0),
+                                "iteration_count": event.get("iteration_count", 0),
+                                "next_agent": event.get("next_agent"),
+                                "scratchpad": event.get("scratchpad", [])[-5:],
+                            }
+                        })
+                        
+                        if event.get("status") in ["approved", "rejected", "failed"]:
+                            await broadcast_to_thread(thread_id, {
+                                "type": "complete",
+                                "data": {"status": event.get("status")}
+                            })
+                            break
+                except Exception as e:
+                    await broadcast_to_thread(thread_id, {
+                        "type": "error",
+                        "data": {"message": str(e)}
+                    })
+            
+            asyncio.create_task(resume_workflow())
+        
         return {
             "status": "found",
             "thread_id": thread_id,
             "session_id": session.id,
             "current_status": session.status,
-            "can_resume": bool(state.next),
+            "can_resume": can_resume,
             "next_node": state.next[0] if state.next else None,
         }
     except Exception as e:

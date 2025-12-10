@@ -63,7 +63,32 @@ function LogEntryItem({ entry }: { entry: LogEntry }) {
             {entry.timestamp.toLocaleTimeString()}
           </span>
         </div>
-        <p className="text-sm text-slate-600 break-words">{entry.message}</p>
+        <p className="text-sm text-slate-600 break-words mb-2">{entry.message}</p>
+        
+        {(entry.input || entry.output) && (
+          <div className="space-y-1.5 mt-2 pt-2 border-t border-slate-200/50">
+            {entry.input && (
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-0.5 uppercase tracking-wide">
+                  Input
+                </div>
+                <div className="text-xs text-slate-600 bg-slate-50/80 p-1.5 rounded border border-slate-200/50 font-mono whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+                  {entry.input}
+                </div>
+              </div>
+            )}
+            {entry.output && (
+              <div>
+                <div className="text-xs font-semibold text-slate-500 mb-0.5 uppercase tracking-wide">
+                  Output
+                </div>
+                <div className="text-xs text-slate-600 bg-blue-50/80 p-1.5 rounded border border-blue-200/50 font-mono whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+                  {entry.output}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

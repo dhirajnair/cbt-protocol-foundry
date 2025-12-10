@@ -16,14 +16,6 @@ async def human_gate_node(state: BlackboardState) -> dict:
     - Reject with edits: Go back to drafter
     - Cancel: End the session
     """
-    note_message = (
-        f"Awaiting human review. "
-        f"Current scores - Safety: {state.get('safety_score', 0)}/100, "
-        f"Empathy: {state.get('empathy_score', 0)}/100. "
-        f"Iteration: {state.get('iteration_count', 0)}/{5}."
-    )
-    scratchpad = add_scratchpad_note(state, "human_gate", note_message)
-    
     # Check if we have a human decision
     human_decision = state.get("human_decision")
     
@@ -33,7 +25,14 @@ async def human_gate_node(state: BlackboardState) -> dict:
         if action == "approve":
             # Proceed to finalize
             note_message = "Human approved the draft. Proceeding to finalization."
-            scratchpad = add_scratchpad_note(state, "human_gate", note_message)
+            input_data = (
+                f"Draft presented for review:\n{state['current_draft'][:500]}...\n\n"
+                f"Safety score: {state.get('safety_score', 0)}/100\n"
+                f"Empathy score: {state.get('empathy_score', 0)}/100\n"
+                f"Iteration: {state.get('iteration_count', 0)}"
+            )
+            output_data = "Decision: APPROVED - Proceeding to finalization"
+            scratchpad = add_scratchpad_note(state, "human_gate", note_message, input=input_data, output=output_data)
             
             return {
                 "status": DraftStatus.APPROVED.value,
@@ -55,7 +54,17 @@ async def human_gate_node(state: BlackboardState) -> dict:
             ).strip()
             
             note_message = f"Human rejected the draft. Feedback: {feedback[:100]}..."
-            scratchpad = add_scratchpad_note(state, "human_gate", note_message)
+            input_data = (
+                f"Draft presented for review:\n{state['current_draft'][:500]}...\n\n"
+                f"Human feedback: {feedback}\n"
+                f"Human edits provided: {'Yes' if edits else 'No'}"
+            )
+            output_data = (
+                f"Decision: REJECTED\n"
+                f"Feedback: {feedback[:200]}...\n"
+                f"Next agent: drafter (with revision instructions)"
+            )
+            scratchpad = add_scratchpad_note(state, "human_gate", note_message, input=input_data, output=output_data)
             
             # Update current draft with edits if provided
             current_draft = edits if edits else state["current_draft"]
@@ -72,7 +81,9 @@ async def human_gate_node(state: BlackboardState) -> dict:
         
         elif action == "cancel":
             note_message = "Human cancelled the session."
-            scratchpad = add_scratchpad_note(state, "human_gate", note_message)
+            input_data = f"Session state at cancellation:\nIteration: {state.get('iteration_count', 0)}"
+            output_data = "Decision: CANCELLED - Session ended"
+            scratchpad = add_scratchpad_note(state, "human_gate", note_message, input=input_data, output=output_data)
             
             return {
                 "status": "cancelled",
@@ -82,6 +93,21 @@ async def human_gate_node(state: BlackboardState) -> dict:
             }
     
     # No decision yet - this state will be returned when graph is interrupted
+    note_message = (
+        f"Awaiting human review. "
+        f"Current scores - Safety: {state.get('safety_score', 0)}/100, "
+        f"Empathy: {state.get('empathy_score', 0)}/100. "
+        f"Iteration: {state.get('iteration_count', 0)}/{5}."
+    )
+    input_data = (
+        f"Draft ready for review:\n{state['current_draft'][:500]}...\n\n"
+        f"Safety score: {state.get('safety_score', 0)}/100\n"
+        f"Empathy score: {state.get('empathy_score', 0)}/100\n"
+        f"Iteration: {state.get('iteration_count', 0)}"
+    )
+    output_data = "Status: Awaiting human decision"
+    scratchpad = add_scratchpad_note(state, "human_gate", note_message, input=input_data, output=output_data)
+    
     return {
         "status": DraftStatus.REVIEWING.value,
         "scratchpad": scratchpad,
