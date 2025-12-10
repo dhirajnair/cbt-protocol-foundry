@@ -919,9 +919,9 @@ export default function Dashboard() {
         </div>
 
         {/* Right column - State on top, Live Activity sized to graph */}
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col h-full">
           <StateInspector />
-<div className="h-[640px] lg:h-[720px] max-h-[100vh]">
+          <div className="flex-1 min-h-[560px] lg:min-h-[640px] max-h-[75vh]">
             <LiveStreamPanel />
           </div>
         </div>
