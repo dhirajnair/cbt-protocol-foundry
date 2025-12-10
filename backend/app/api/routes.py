@@ -142,9 +142,16 @@ async def generate_protocol(request: GenerateRequest):
                         iteration_count=state.values.get("iteration_count", 0),
                     )
                 )
+                # Send interrupt with full draft (not truncated)
                 await broadcast_to_thread(session.thread_id, {
                     "type": "interrupt",
-                    "data": {"status": "pending_review"}
+                    "data": {
+                        "status": "pending_review",
+                        "current_draft": state.values.get("current_draft", ""),  # Full draft
+                        "safety_score": state.values.get("safety_score", 0),
+                        "empathy_score": state.values.get("empathy_score", 0),
+                        "iteration_count": state.values.get("iteration_count", 0),
+                    }
                 })
             else:
                 # Graph completed (shouldn't happen without human approval)

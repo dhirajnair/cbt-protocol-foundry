@@ -181,8 +181,20 @@ tools = [
 ---
 
 ## Open Questions
-1. Should checkpoints be pruned after N days to save storage?
-2. GPT-4o vs Claude for agents—do we need to abstract LLM calls?
-3. Should Safety Guardian run synchronously or as background validator?
-4. Do we need rate limiting on `/api/generate` for MVP?
-5. How to handle MCP `auto_approve=True` safely—require explicit config flag?
+
+### Answers (Based on Implementation)
+
+1. **Should checkpoints be pruned after N days to save storage?**
+   - **Answer**: **Not implemented for MVP**. Checkpoints are stored indefinitely in PostgreSQL. For production, a cleanup job should be added to prune checkpoints older than a configurable retention period (e.g., 30-90 days), while preserving session metadata and final artifacts. This is a future enhancement.
+
+2. **GPT-4o vs Claude for agents—do we need to abstract LLM calls?**
+   - **Answer**: **GPT-4o is used** (configurable via `OPENAI_MODEL` env var, default: `gpt-4o`). LLM calls are made directly via `langchain-openai.ChatOpenAI` without abstraction. For MVP, this is sufficient. If multi-provider support is needed later, an abstraction layer (e.g., LangChain's LLM interface) can be added, but it's not required for the current implementation.
+
+3. **Should Safety Guardian run synchronously or as background validator?**
+   - **Answer**: **Synchronously** in the main workflow. The Safety Guardian is a node in the LangGraph workflow that runs before Clinical Critic. It must complete before the workflow proceeds, ensuring safety checks happen in real-time. This guarantees unsafe content is caught before human review, which is critical for the safety-first design.
+
+4. **Do we need rate limiting on `/api/generate` for MVP?**
+   - **Answer**: **Not implemented for MVP**. Rate limiting is mentioned in the build plan but not yet implemented. For production, rate limiting should be added (e.g., 10 requests/minute per IP) to prevent abuse and manage API costs. FastAPI middleware or a library like `slowapi` can be used.
+
+5. **How to handle MCP `auto_approve=True` safely—require explicit config flag?**
+   - **Answer**: **Parameter-based with default safety**. The MCP `create_protocol` tool accepts `auto_approve` as an optional boolean parameter (default: `False`). When `auto_approve=True`, the workflow bypasses the human gate interrupt. The parameter is clearly documented with a warning ("Use with caution"). For additional safety, a server-level config flag could require explicit enablement, but the current implementation relies on the caller's explicit choice.

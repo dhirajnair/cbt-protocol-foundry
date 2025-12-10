@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -39,7 +39,41 @@ export default function ReviewModal({
   const [feedback, setFeedback] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const { updateState } = useSessionStore()
+
+  // Update editedDraft when draft prop changes (e.g., after API fetch)
+  useEffect(() => {
+    if (draft) {
+      setEditedDraft(draft)
+      setIsLoading(false)
+    }
+  }, [draft])
+
+  // Fetch full state when modal opens if draft is empty
+  useEffect(() => {
+    if (open && threadId) {
+      if (!draft || draft.trim() === '') {
+        setIsLoading(true)
+        api.getState(threadId)
+          .then((state) => {
+            setEditedDraft(state.current_draft || '')
+            setIsLoading(false)
+          })
+          .catch((error) => {
+            console.error('Failed to fetch state:', error)
+            setIsLoading(false)
+            toast({
+              title: 'Error',
+              description: 'Failed to load draft content. Please try again.',
+              variant: 'destructive',
+            })
+          })
+      } else {
+        setEditedDraft(draft)
+      }
+    }
+  }, [open, threadId])
 
   const handleApprove = async () => {
     setIsSubmitting(true)
@@ -138,15 +172,26 @@ export default function ReviewModal({
 
         {/* Draft content */}
         <ScrollArea className="flex-1 min-h-[300px] max-h-[400px]">
-          {isEditing ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading draft content...</p>
+              </div>
+            </div>
+          ) : isEditing ? (
             <Textarea
               value={editedDraft}
               onChange={(e) => setEditedDraft(e.target.value)}
               className="min-h-[300px] font-mono text-sm"
             />
-          ) : (
+          ) : editedDraft ? (
             <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded-lg">
               <pre className="whitespace-pre-wrap font-sans text-slate-700">{editedDraft}</pre>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <p className="text-sm text-muted-foreground">No draft content available</p>
             </div>
           )}
         </ScrollArea>

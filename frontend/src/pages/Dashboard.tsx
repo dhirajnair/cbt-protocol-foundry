@@ -87,17 +87,37 @@ export default function Dashboard() {
             break
 
           case 'interrupt':
-            updateState({ status: 'pending_review', isPaused: true })
-            addLog('system', 'Awaiting human review', 'warning')
-            // Fetch full state for review
-            api.getState(tid).then((state) => {
-              updateState({
-                currentDraft: state.current_draft,
-                safetyScore: state.safety_score,
-                empathyScore: state.empathy_score,
-              })
-              setShowReviewModal(true)
+            updateState({ 
+              status: 'pending_review', 
+              isPaused: true,
+              currentDraft: data.data.current_draft || '',
+              safetyScore: data.data.safety_score || 0,
+              empathyScore: data.data.empathy_score || 0,
             })
+            addLog('system', 'Awaiting human review', 'warning')
+            
+            // If draft is in the interrupt message, show modal immediately
+            // Otherwise fetch full state
+            if (data.data.current_draft) {
+              setShowReviewModal(true)
+            } else {
+              // Fallback: fetch full state if not in interrupt message
+              api.getState(tid)
+                .then((state) => {
+                  updateState({
+                    currentDraft: state.current_draft || '',
+                    safetyScore: state.safety_score || 0,
+                    empathyScore: state.empathy_score || 0,
+                  })
+                  setShowReviewModal(true)
+                })
+                .catch((error) => {
+                  console.error('Failed to fetch state for review:', error)
+                  addLog('system', 'Error loading draft for review', 'error')
+                  // Still show modal so user can retry
+                  setShowReviewModal(true)
+                })
+            }
             break
 
           case 'complete':

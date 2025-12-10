@@ -94,7 +94,22 @@
 ---
 
 ## Open Questions
-1. Should MCP interface support human-in-the-loop, or auto-approve only?
-2. What's the maximum iteration count before escalating to human?
-3. Should Safety Guardian use rule-based checks, LLM-based, or hybrid?
-4. Do we need audit logging beyond checkpoints for compliance?
+
+### Answers (Based on Implementation)
+
+1. **Should MCP interface support human-in-the-loop, or auto-approve only?**
+   - **Answer**: Both modes are supported. The MCP `create_protocol` tool accepts an optional `auto_approve` parameter (default: `False`). When `auto_approve=False`, the workflow pauses at the human gate and returns a `pending_review` status with a review URL. When `auto_approve=True`, it bypasses human review and returns the final protocol directly. This provides flexibility for different use cases while maintaining safety by default.
+
+2. **What's the maximum iteration count before escalating to human?**
+   - **Answer**: Maximum iteration count is **5** (configurable via `MAX_ITERATIONS` environment variable, default: 5). When this limit is reached, the Supervisor agent forces routing to the Human Gate regardless of safety/empathy scores, ensuring the workflow doesn't loop indefinitely.
+
+3. **Should Safety Guardian use rule-based checks, LLM-based, or hybrid?**
+   - **Answer**: **LLM-based** approach is implemented. The Safety Guardian uses GPT-4o with a specialized system prompt and structured JSON output to analyze drafts. It returns a safety score (0-100) and detailed flags with line numbers and severity levels. The LLM approach provides nuanced understanding of context while maintaining consistency through low temperature (0.1) and structured output parsing.
+
+4. **Do we need audit logging beyond checkpoints for compliance?**
+   - **Answer**: Currently, audit logging is provided through:
+     - **Checkpoints**: Full state snapshots at each graph step (stored in PostgreSQL)
+     - **Session table**: Tracks all sessions with status, scores, and final artifacts
+     - **Scratchpad**: Agent notes with timestamps in the blackboard state
+     - **WebSocket events**: Real-time activity stream (not persisted)
+   - For production compliance, additional structured audit logging may be needed (e.g., separate audit table with user actions, IP addresses, etc.), but the current checkpoint system provides comprehensive traceability for MVP.

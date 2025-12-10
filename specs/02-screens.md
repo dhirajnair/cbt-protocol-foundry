@@ -110,7 +110,22 @@
 ---
 
 ## Open Questions
-1. Should agent graph visualization be interactive (click node to see details) or display-only?
-2. Do we need dark mode for MVP?
-3. Should Review Pending page require authentication or use signed URLs?
-4. How much of the blackboard state should be visible to non-technical users?
+
+### Answers (Based on Implementation)
+
+1. **Should agent graph visualization be interactive (click node to see details) or display-only?**
+   - **Answer**: **Display-only** for MVP. The agent graph uses React Flow to show node status (idle/active/complete/error) with visual indicators and animated edges, but nodes are not clickable. The graph serves as a real-time status indicator. Detailed information is available in the Live Activity panel and State Inspector. Interactive features (click to see details) can be added in future iterations.
+
+2. **Do we need dark mode for MVP?**
+   - **Answer**: **No dark mode** for MVP. The UI uses a clean, clinical design with light backgrounds (`#F9FAFB`), white surfaces, and professional color scheme optimized for readability. Dark mode support can be added later if user feedback indicates it's needed.
+
+3. **Should Review Pending page require authentication or use signed URLs?**
+   - **Answer**: **No authentication** for MVP. The Review Pending page (`/review/:thread_id`) is accessible via thread_id without authentication. This simplifies the MVP scope and allows easy sharing of review links. For production, signed URLs or authentication should be added for security, but the current implementation prioritizes ease of use and human-in-the-loop workflow.
+
+4. **How much of the blackboard state should be visible to non-technical users?**
+   - **Answer**: **Tiered visibility** approach:
+     - **Dashboard**: Shows high-level metrics (safety score, empathy score, iteration count) in badges and the State Inspector (collapsible)
+     - **State Inspector**: Full JSON view available but collapsed by default, with quick metrics (Safety/Empathy/Iterations) visible when expanded
+     - **Review Modal**: Shows only relevant information (draft, scores, agent notes from scratchpad)
+     - **Session Detail**: Full audit trail including all scratchpad notes for technical users
+   - This balances transparency for debugging while keeping the main UI clean for non-technical users.

@@ -202,8 +202,34 @@
 ---
 
 ## Open Questions
-1. What's the deployment target—cloud provider preference?
-2. Do we need CI/CD pipeline for MVP?
-3. Should we add basic analytics (PostHog/Mixpanel) now or later?
-4. Who are the test users for UAT?
-5. Is there a compliance review needed before production?
+
+### Answers (Based on Implementation)
+
+1. **What's the deployment target—cloud provider preference?**
+   - **Answer**: **Not specified for MVP**. The project includes Docker Compose for local development and can be containerized for any cloud provider (AWS, GCP, Azure, Railway, Render, etc.). The README mentions "prod TBD" for hosting. The stateless backend design (with PostgreSQL) makes it cloud-agnostic. Deployment target should be chosen based on team preferences, budget, and compliance requirements.
+
+2. **Do we need CI/CD pipeline for MVP?**
+   - **Answer**: **Not implemented for MVP**. No CI/CD pipeline is set up. For production, a CI/CD pipeline (GitHub Actions, GitLab CI, etc.) should be added for:
+     - Automated testing
+     - Code quality checks (linting, type checking)
+     - Docker image building
+     - Automated deployments
+   - This is a future enhancement beyond MVP scope.
+
+3. **Should we add basic analytics (PostHog/Mixpanel) now or later?**
+   - **Answer**: **Later**. No analytics are implemented in the MVP. The system tracks basic metrics in the database (session counts, safety/empathy scores, iteration counts) which can be queried. For production, analytics can be added to track usage patterns, user behavior, and system performance, but it's not required for MVP functionality.
+
+4. **Who are the test users for UAT?**
+   - **Answer**: **Not specified**. The MVP is built and ready for testing, but test users haven't been identified. UAT should involve:
+     - Therapists/clinicians (primary users)
+     - System administrators
+     - Technical reviewers
+   - Test user selection should be part of the pre-production planning phase.
+
+5. **Is there a compliance review needed before production?**
+   - **Answer**: **Yes, recommended**. Given this is a healthcare-adjacent application generating clinical protocols:
+     - **HIPAA compliance**: If handling PHI, HIPAA compliance is required
+     - **Clinical safety**: Review by licensed clinicians/ethics board
+     - **Data privacy**: GDPR/CCPA compliance if handling user data
+     - **Security audit**: Penetration testing, vulnerability scanning
+   - The current MVP includes safety features (Safety Guardian, human review) but formal compliance review should be conducted before production deployment, especially if used in clinical settings.
