@@ -668,10 +668,7 @@ export default function Dashboard() {
               wsRef.current.close()
               wsRef.current = null
             }
-            // Clear dashboard after showing completion message
-            setTimeout(() => {
-              reset()
-            }, 3000) // Clear after 3 seconds
+            // Do NOT auto-reset the dashboard; only reset when user starts a new protocol or refreshes
             break
 
           case 'error':
