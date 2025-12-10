@@ -202,7 +202,9 @@ export default function AgentGraph() {
         position: { x: 500, y: 200 },
         data: {
           label: 'Human Review',
-          status: storeNodes.find((n) => n.id === 'human_gate')?.status || 'idle',
+          status: activeNode === 'human_gate'
+            ? 'active'
+            : (storeNodes.find((n) => n.id === 'human_gate')?.status || 'idle'),
           icon: nodeIcons.human_gate,
           executionCount: storeNodes.find((n) => n.id === 'human_gate')?.executionCount || 0,
         },
@@ -314,17 +316,25 @@ export default function AgentGraph() {
     setNodes((nds) =>
       nds.map((node) => {
         const storeNode = storeNodes.find((n) => n.id === node.id)
+        const baseStatus = storeNode?.status || 'idle'
+        const hasRun = (storeNode?.executionCount || 0) > 0
+        const derivedStatus =
+          activeNode === node.id
+            ? 'active'
+            : baseStatus === 'idle' && hasRun
+              ? 'complete'
+              : baseStatus
         return {
           ...node,
           data: {
             ...node.data,
-            status: storeNode?.status || 'idle',
+            status: derivedStatus,
             executionCount: storeNode?.executionCount || 0,
           },
         }
       })
     )
-  }, [storeNodes, setNodes])
+  }, [storeNodes, activeNode, setNodes])
 
   // Update edges animation based on execution sequence (previousNode -> activeNode)
   // Ensure edges are ALWAYS visible to show workflow structure

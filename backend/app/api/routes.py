@@ -16,6 +16,7 @@ from app.models import (
     SessionResponse,
     SessionStatus,
     SessionUpdate,
+    add_scratchpad_note,
     create_initial_state,
 )
 from app.services import session_service
@@ -99,6 +100,38 @@ async def broadcast_to_thread(thread_id: str, message: dict):
                 # Log send failures so we know if clients didn't get the message
                 logging.error(f"[BACKEND LOG] ❌ Failed to send WS message to thread {thread_id}: {e}", exc_info=True)
                 print(f"[BACKEND LOG] ❌ Failed to send WS message to thread {thread_id}: {e}")
+
+
+def ensure_human_gate_placeholder(state_values: BlackboardState) -> tuple[list[dict], bool]:
+    """
+    Ensure the scratchpad contains a human_gate note so the UI can render
+    the Human Review state even when the graph pauses before the node executes.
+    Always appends a fresh note for each pause. Returns the updated scratchpad
+    and whether a note was added.
+    """
+    # Clear any stale human_decision so the next review starts fresh
+    state_values["human_decision"] = None
+    scratchpad = state_values.get("scratchpad", []) or []
+    
+    note_message = (
+        f"Awaiting human review. "
+        f"Current scores - Safety: {state_values.get('safety_score', 0)}/100, "
+        f"Empathy: {state_values.get('empathy_score', 0)}/100. "
+        f"Iteration: {state_values.get('iteration_count', 0)}."
+    )
+    input_data = (
+        f"Draft ready for review:\n{state_values.get('current_draft', '')[:500]}...\n\n"
+        f"Safety score: {state_values.get('safety_score', 0)}/100\n"
+        f"Empathy score: {state_values.get('empathy_score', 0)}/100\n"
+        f"Iteration: {state_values.get('iteration_count', 0)}"
+    )
+    output_data = "Status: Awaiting human decision"
+    updated_scratchpad = add_scratchpad_note(
+        state_values, "human_gate", note_message, input=input_data, output=output_data
+    )
+    # Persist scratchpad on state so subsequent handlers see the note
+    state_values["scratchpad"] = updated_scratchpad
+    return updated_scratchpad, True
 
 
 @router.get("/health")
@@ -221,7 +254,10 @@ async def generate_protocol(request: GenerateRequest):
                     )
                 )
                 # Get scratchpad from state to preserve iteration 1 history
-                scratchpad = state.values.get("scratchpad", [])
+                scratchpad, added_human_gate = ensure_human_gate_placeholder(state.values)
+                if added_human_gate:
+                    # Persist placeholder so history and dashboard both show Human Review state
+                    await workflow.aupdate_state(config, {"scratchpad": scratchpad})
                 
                 # LOG: Interrupt with scratchpad
                 if scratchpad:
@@ -472,7 +508,9 @@ async def submit_review(thread_id: str, request: ReviewRequest):
                             empathy_score=final_state.values.get("empathy_score"),
                         )
                     )
-                    interrupt_scratchpad = final_state.values.get("scratchpad", [])
+                    interrupt_scratchpad, added_human_gate = ensure_human_gate_placeholder(final_state.values)
+                    if added_human_gate:
+                        await workflow.aupdate_state(config, {"scratchpad": interrupt_scratchpad})
                     await broadcast_to_thread(thread_id, {
                         "type": "interrupt",
                         "data": {
