@@ -32,15 +32,15 @@ export default function StateInspector() {
   }
 
   return (
-    <div className="bg-white/50 rounded-xl border border-slate-200/50 overflow-hidden">
+    <div className="bg-white/50 rounded-xl border border-slate-200/50 overflow-hidden dark:bg-slate-900/70 dark:border-slate-800">
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/50 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/70 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Code className="w-4 h-4 text-slate-500" />
-          <span className="text-sm font-medium text-slate-700">State Inspector</span>
+          <Code className="w-4 h-4 text-slate-500 dark:text-slate-200" />
+          <span className="text-sm font-medium text-foreground">State Inspector</span>
         </div>
         <div className="flex items-center gap-2">
           {status && (
@@ -49,18 +49,18 @@ export default function StateInspector() {
             </Badge>
           )}
           {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-300" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-300" />
           )}
         </div>
       </button>
 
       {/* Content */}
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-slate-200/50">
+        <div className="px-4 pb-4 border-t border-slate-200/50 dark:border-slate-800 max-h-[360px] overflow-y-auto">
           {/* Quick metrics */}
-          <div className="grid grid-cols-3 gap-3 py-3 border-b border-slate-200/50">
+          <div className="grid grid-cols-3 gap-3 py-3 border-b border-slate-200/50 dark:border-slate-800">
             <MetricCard label="Safety" value={safetyScore} max={100} color="secondary" />
             <MetricCard label="Empathy" value={empathyScore} max={100} color="primary" />
             <MetricCard label="Iterations" value={iterationCount} max={5} color="accent" />
@@ -68,21 +68,21 @@ export default function StateInspector() {
           
           {/* Current Activity */}
           {activeNode && (
-            <div className="py-3 border-b border-slate-200/50">
-              <div className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+            <div className="py-3 border-b border-slate-200/50 dark:border-slate-800">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
                 Current Activity
               </div>
-              <div className="text-sm font-medium text-slate-700 capitalize">
+              <div className="text-sm font-medium text-foreground capitalize">
                 {activeNode.replace('_', ' ')} - {nodes.find((n) => n.id === activeNode)?.status || 'idle'}
               </div>
             </div>
           )}
           {!activeNode && status !== 'idle' && (
-            <div className="py-3 border-b border-slate-200/50">
-              <div className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+            <div className="py-3 border-b border-slate-200/50 dark:border-slate-800">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
                 Current Activity
               </div>
-              <div className="text-sm font-medium text-slate-700">
+              <div className="text-sm font-medium text-foreground">
                 {status === 'approved' ? 'Completed' : status === 'pending_review' ? 'Awaiting Review' : 'Idle'}
               </div>
             </div>
@@ -90,7 +90,7 @@ export default function StateInspector() {
 
           {/* JSON view */}
           <div className="mt-3">
-            <pre className="text-xs font-mono bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto">
+            <pre className="text-xs font-mono bg-slate-900 text-slate-100 p-4 rounded-lg overflow-auto whitespace-pre-wrap break-words">
               {JSON.stringify(state, null, 2)}
             </pre>
           </div>
@@ -113,19 +113,19 @@ function MetricCard({
 }) {
   const percentage = (value / max) * 100
   const colorClasses = {
-    primary: 'bg-primary/20 text-primary',
-    secondary: 'bg-secondary/20 text-secondary',
-    accent: 'bg-accent/20 text-amber-700',
+    primary: 'bg-primary/20 text-primary dark:bg-sky-500/20 dark:text-sky-200',
+    secondary: 'bg-secondary/20 text-secondary dark:bg-emerald-500/20 dark:text-emerald-200',
+    accent: 'bg-accent/20 text-amber-700 dark:bg-amber-500/20 dark:text-amber-100',
   }
 
   return (
-    <div className="text-center p-2 rounded-lg bg-white/50">
+    <div className="text-center p-2 rounded-lg bg-white/50 dark:bg-slate-800/70">
       <div className={cn('text-lg font-bold', colorClasses[color].split(' ')[1])}>
         {value}
         <span className="text-xs text-muted-foreground">/{max}</span>
       </div>
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+      <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden dark:bg-slate-700">
         <div
           className={cn('h-full rounded-full transition-all duration-500', colorClasses[color].split(' ')[0])}
           style={{ width: `${percentage}%` }}

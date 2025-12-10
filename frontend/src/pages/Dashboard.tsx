@@ -9,15 +9,17 @@ import StateInspector from '@/components/StateInspector'
 import ReviewModal from '@/components/ReviewModal'
 import { useSessionStore } from '@/store/sessionStore'
 import { api } from '@/lib/api'
-import { Sparkles, Activity, History, ArrowRight, Play, Pause } from 'lucide-react'
+import { Sparkles, Activity, History, ArrowRight, Play, Pause, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const location = useLocation()
   const [showReviewModal, setShowReviewModal] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
+  const { theme, toggleTheme } = useTheme()
   
   const {
     threadId,
@@ -323,7 +325,6 @@ export default function Dashboard() {
               // Update execution counts - SCRATCHPAD IS SOURCE OF TRUTH
               updatedNodes = currentState.nodes.map(n => {
                 const countFromScratchpad = agentExecutionCounts[n.id] || 0
-                const oldCount = n.executionCount
                 // Always use scratchpad count as the definitive source
                 // This ensures counts match what actually happened (from backend scratchpad)
                 return { ...n, executionCount: countFromScratchpad }
@@ -773,14 +774,24 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-800">
-            Protocol <span className="gradient-text">Generator</span>
+          <h1 className="text-3xl font-display font-bold text-foreground">
+            CBT Protocol <span className="gradient-text">Generator</span>
           </h1>
           <p className="text-muted-foreground mt-1">
             Create safe, empathetic CBT protocols with AI assistance
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTheme}
+            className="border-slate-200 dark:border-slate-700"
+            title="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
           {status === 'approved' && (
             <Button variant="outline" onClick={handleNewSession}>
               <Sparkles className="w-4 h-4 mr-2" />
@@ -816,10 +827,10 @@ export default function Dashboard() {
 
       {/* Status banner */}
       {status && status !== 'idle' && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-white/60 border border-slate-200/50">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-white/60 border border-slate-200/50 dark:bg-slate-800/70 dark:border-slate-700">
           <Activity className={`w-5 h-5 ${status === 'running' ? 'text-primary animate-pulse' : 'text-secondary'}`} />
           <div className="flex-1">
-            <p className="text-sm font-medium text-slate-700">
+            <p className="text-sm font-medium text-foreground">
               {intent.length > 80 ? intent.slice(0, 80) + '...' : intent}
             </p>
           </div>
@@ -843,9 +854,9 @@ export default function Dashboard() {
       )}
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-6">
         {/* Left column - Input and Graph */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           {/* Intent Input Card */}
           <Card className="glass-panel">
             <CardHeader className="pb-3">
@@ -907,15 +918,12 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Right column - Stream and State */}
-        <div className="space-y-6">
-          {/* Live Stream */}
-          <div className="h-[400px]">
+        {/* Right column - State on top, Live Activity sized to graph */}
+        <div className="space-y-4 flex flex-col h-full">
+          <StateInspector />
+          <div className="flex-1 min-h-[560px] lg:min-h-[640px] max-h-[75vh]">
             <LiveStreamPanel />
           </div>
-
-          {/* State Inspector */}
-          <StateInspector />
         </div>
       </div>
 

@@ -135,7 +135,7 @@ export default function History() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-800">
+          <h1 className="text-3xl font-display font-bold text-foreground">
             Session <span className="gradient-text">History</span>
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -197,7 +197,7 @@ export default function History() {
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-slate-100 rounded-lg animate-pulse" />
+                <div key={i} className="h-16 bg-slate-100 rounded-lg animate-pulse dark:bg-slate-800/60" />
               ))}
             </div>
           ) : filteredSessions.length === 0 ? (
@@ -210,14 +210,14 @@ export default function History() {
               {filteredSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="w-full p-4 rounded-xl bg-white/60 hover:bg-white border border-slate-200/50 hover:border-primary/30 transition-all group"
+                  className="w-full p-4 rounded-xl bg-white/70 hover:bg-white border border-slate-200/60 hover:border-primary/40 transition-all group dark:bg-slate-900/70 dark:hover:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <button
                       onClick={() => navigate(`/session/${session.id}`)}
                       className="flex-1 min-w-0 text-left"
                     >
-                      <p className="font-medium text-slate-700 group-hover:text-primary transition-colors">
+                      <p className="font-medium text-foreground group-hover:text-primary transition-colors">
                         {truncate(session.intent, 80)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">

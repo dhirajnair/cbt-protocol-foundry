@@ -14,6 +14,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { cn } from '@/lib/utils'
 import { useSessionStore, type NodeStatus } from '@/store/sessionStore'
+import { useTheme } from '@/hooks/useTheme'
 import {
   Brain,
   PenTool,
@@ -54,10 +55,10 @@ const agentDescriptions: Record<string, string> = {
 function AgentNode({ data }: AgentNodeProps) {
   const Icon = data.icon
   const statusClasses = {
-    idle: 'bg-slate-100 border-slate-200 text-slate-400',
-    active: 'bg-primary-50 border-primary-400 text-primary-600 shadow-lg shadow-primary/20',
-    complete: 'bg-green-50 border-green-400 text-green-700',
-    error: 'bg-destructive/10 border-destructive text-destructive',
+    idle: 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900/70 dark:border-slate-800 dark:text-slate-300',
+    active: 'bg-primary-50 border-primary-400 text-primary-600 shadow-lg shadow-primary/20 dark:bg-sky-500/10 dark:border-sky-400 dark:text-sky-100 dark:shadow-sky-500/30',
+    complete: 'bg-green-50 border-green-400 text-green-700 dark:bg-emerald-500/10 dark:border-emerald-500 dark:text-emerald-100',
+    error: 'bg-destructive/10 border-destructive text-destructive dark:bg-red-500/10 dark:border-red-400 dark:text-red-100',
   }
 
   // Map label to description (handle both "Human Review" and "human review")
@@ -104,9 +105,9 @@ function AgentNode({ data }: AgentNodeProps) {
       <div className="flex items-center gap-2">
         <div className={cn(
           'w-8 h-8 rounded-lg flex items-center justify-center',
-          data.status === 'active' && 'bg-primary/10',
-          data.status === 'complete' && 'bg-green-100',
-          data.status === 'idle' && 'bg-slate-200/50'
+          data.status === 'active' && 'bg-primary/10 dark:bg-sky-500/10',
+          data.status === 'complete' && 'bg-green-100 dark:bg-emerald-500/20',
+          data.status === 'idle' && 'bg-slate-200/50 dark:bg-slate-800'
         )}>
           <Icon className="w-4 h-4" />
         </div>
@@ -139,6 +140,7 @@ const nodeTypes = {
 
 export default function AgentGraph() {
   const { nodes: storeNodes, activeNode, previousNode } = useSessionStore()
+  const { theme } = useTheme()
 
   const initialNodes: Node[] = useMemo(
     () => [
@@ -363,7 +365,7 @@ export default function AgentGraph() {
   }, [storeNodes, activeNode, previousNode, setEdges])
 
   return (
-    <div className="w-full h-[450px] bg-white/50 rounded-xl border border-slate-200/50 overflow-hidden">
+    <div className="w-full h-[450px] bg-white/50 rounded-xl border border-slate-200/50 overflow-hidden dark:bg-slate-900/70 dark:border-slate-800">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -378,10 +380,10 @@ export default function AgentGraph() {
         edgesFocusable={true}
         nodesFocusable={true}
       >
-        <Background color="#e2e8f0" gap={16} size={1} />
+        <Background color={theme === 'dark' ? '#334155' : '#e2e8f0'} gap={16} size={1} />
         <Controls
           showInteractive={false}
-          className="bg-white/80 border border-slate-200 rounded-lg shadow-sm"
+          className="bg-white/80 border border-slate-200 rounded-lg shadow-sm dark:bg-slate-800/80 dark:border-slate-700"
         />
       </ReactFlow>
     </div>
