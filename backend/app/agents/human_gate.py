@@ -24,6 +24,7 @@ async def human_gate_node(state: BlackboardState) -> dict:
         
         if action == "approve":
             # Proceed to finalize
+            feedback = human_decision.get("feedback") or ""
             note_message = "Human approved the draft. Proceeding to finalization."
             input_data = (
                 f"Draft presented for review:\n{state['current_draft'][:500]}...\n\n"
@@ -31,13 +32,17 @@ async def human_gate_node(state: BlackboardState) -> dict:
                 f"Empathy score: {state.get('empathy_score', 0)}/100\n"
                 f"Iteration: {state.get('iteration_count', 0)}"
             )
-            output_data = "Decision: APPROVED - Proceeding to finalization"
+            output_data = (
+                "Decision: APPROVED - Proceeding to finalization\n"
+                f"Feedback: {feedback[:500] or 'No feedback provided'}"
+            )
             scratchpad = add_scratchpad_note(state, "human_gate", note_message, input=input_data, output=output_data)
             
             return {
                 "status": DraftStatus.APPROVED.value,
                 "next_agent": "finalize",
                 "scratchpad": scratchpad,
+                "human_decision": None,
                 "updated_at": datetime.utcnow().isoformat(),
             }
         
@@ -61,7 +66,7 @@ async def human_gate_node(state: BlackboardState) -> dict:
             )
             output_data = (
                 f"Decision: REJECTED\n"
-                f"Feedback: {feedback[:200]}...\n"
+                f"Feedback: {feedback[:500] or 'No feedback provided'}\n"
                 f"Next agent: drafter (with revision instructions)"
             )
             scratchpad = add_scratchpad_note(state, "human_gate", note_message, input=input_data, output=output_data)
@@ -89,6 +94,7 @@ async def human_gate_node(state: BlackboardState) -> dict:
                 "status": "cancelled",
                 "next_agent": "end",
                 "scratchpad": scratchpad,
+                "human_decision": None,
                 "updated_at": datetime.utcnow().isoformat(),
             }
     

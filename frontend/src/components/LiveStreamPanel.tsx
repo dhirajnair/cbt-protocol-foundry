@@ -11,6 +11,8 @@ import {
   CheckCircle,
   AlertCircle,
   type LucideIcon,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 
 const agentIcons: Record<string, LucideIcon> = {
@@ -116,44 +118,49 @@ export default function LiveStreamPanel() {
               const inputOpen = expandedInputs.has(entry.id)
               const outputOpen = expandedOutputs.has(entry.id)
               return (
-                <div key={entry.id}>
+                <div
+                  key={entry.id}
+                  className="rounded-lg border border-slate-200/60 bg-white/70 dark:bg-slate-900/70 dark:border-slate-800 p-3 space-y-2"
+                >
                   <LogEntryItem entry={entry} />
-                  {(entry.input || entry.output) && (
-                    <div className="mt-2 space-y-1">
-                      {entry.input && (
-                        <button
-                          onClick={() => {
-                            const next = new Set(expandedInputs)
-                            next.has(entry.id) ? next.delete(entry.id) : next.add(entry.id)
-                            setExpandedInputs(next)
-                          }}
-                          className="text-xs font-semibold text-slate-600 dark:text-slate-200 uppercase tracking-wide hover:text-primary transition-colors"
-                        >
-                          {inputOpen ? 'Hide Input' : 'Show Input'}
-                        </button>
-                      )}
-                      {entry.output && (
-                        <button
-                          onClick={() => {
-                            const next = new Set(expandedOutputs)
-                            next.has(entry.id) ? next.delete(entry.id) : next.add(entry.id)
-                            setExpandedOutputs(next)
-                          }}
-                          className="ml-3 text-xs font-semibold text-slate-600 dark:text-slate-200 uppercase tracking-wide hover:text-primary transition-colors"
-                        >
-                          {outputOpen ? 'Hide Output' : 'Show Output'}
-                        </button>
+                  {entry.input && (
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          const next = new Set(expandedInputs)
+                          next.has(entry.id) ? next.delete(entry.id) : next.add(entry.id)
+                          setExpandedInputs(next)
+                        }}
+                        className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-200 uppercase tracking-wide hover:text-primary transition-colors"
+                      >
+                        {inputOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        Input
+                      </button>
+                      {inputOpen && (
+                        <div className="text-xs text-slate-700 dark:text-slate-100 bg-slate-50/80 dark:bg-slate-800/70 p-2 rounded border border-slate-200/50 dark:border-slate-700 font-mono whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+                          {entry.input}
+                        </div>
                       )}
                     </div>
                   )}
-                  {inputOpen && entry.input && (
-                    <div className="mt-2 text-xs text-slate-700 dark:text-slate-100 bg-slate-50/80 dark:bg-slate-800/70 p-2 rounded border border-slate-200/50 dark:border-slate-700 font-mono whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
-                      {entry.input}
-                    </div>
-                  )}
-                  {outputOpen && entry.output && (
-                    <div className="mt-2 text-xs text-slate-700 dark:text-slate-100 bg-blue-50/80 dark:bg-slate-800/70 p-2 rounded border border-blue-200/50 dark:border-slate-700 font-mono whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
-                      {entry.output}
+                  {entry.output && (
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          const next = new Set(expandedOutputs)
+                          next.has(entry.id) ? next.delete(entry.id) : next.add(entry.id)
+                          setExpandedOutputs(next)
+                        }}
+                        className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-200 uppercase tracking-wide hover:text-primary transition-colors"
+                      >
+                        {outputOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        Output
+                      </button>
+                      {outputOpen && (
+                        <div className="text-xs text-slate-700 dark:text-slate-100 bg-blue-50/80 dark:bg-slate-800/70 p-2 rounded border border-blue-200/50 dark:border-slate-700 font-mono whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+                          {entry.output}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

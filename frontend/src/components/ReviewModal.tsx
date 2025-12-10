@@ -57,6 +57,9 @@ export default function ReviewModal({
   // Fetch full state when modal opens if draft is empty
   useEffect(() => {
     if (open && threadId) {
+      // Fresh review: clear feedback and reset edit toggle
+      setFeedback('')
+      setIsEditing(false)
       if (!draft || draft.trim() === '') {
         setIsLoading(true)
         api.getState(threadId)
@@ -76,8 +79,12 @@ export default function ReviewModal({
       } else {
         setEditedDraft(draft)
       }
+    } else if (!open) {
+      // Clear on close to avoid prefill in next review
+      setFeedback('')
+      setIsEditing(false)
     }
-  }, [open, threadId])
+  }, [open, threadId, draft])
 
   const handleApprove = async () => {
     setIsSubmitting(true)
